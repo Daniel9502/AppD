@@ -28,7 +28,7 @@ const OPTIONS = {
     { id: 'undezici', e: '🤷', l: 'Unde zici tu', p: 'unde zici tu' },
   ],
   m: [
-    { id: 'masina', e: '🚗', l: 'Te iau eu',  s: 'Te iau eu cu mașina — ai șofer personal pe seara asta. 🚗' },
+    { id: 'masina', e: '🚗', l: 'Te iau eu',  s: 'Te iau eu cu mașina, ai șofer personal pe seara asta. 🚗' },
     { id: 'jos',    e: '🚶', l: 'Pe jos',     s: 'Mergem pe jos: e sănătos, e gratis și mai și povestim. 🚶' },
     { id: 'acolo',  e: '📍', l: 'Ne vedem acolo', s: 'Ne vedem direct acolo, ca doi oameni organizați. 📍' },
   ],
@@ -57,7 +57,6 @@ const JOKES = [
   'Rezervarea e făcută. În capul meu, dar e confirmată.',
   'Nu e nicio presiune. Am reîmprospătat pagina doar de vreo șase ori.',
   'Garantat: zero discuții despre vreme. Maximum una.',
-  'Am repetat mesajul ăsta de patru ori. Ăsta a ieșit cel mai bine.',
   'Anulez orice altceva aveam. Oricum n-aveam nimic.',
   'Butonul verde e mai mare decât celelalte. Nu e o coincidență. 👀',
   'Dacă e să plouă, ne mutăm undeva unde nu plouă. Sunt strateg.',
@@ -76,7 +75,7 @@ const TIPS = {
   b: [
     'Ia o floare. Una singură. Nu e cerere în căsătorie, e o cafea. 🌷',
     'Un minion de pluș bate orice mesaj lung. Testat pe teren. 💛',
-    'Floare sau minion? Dacă nu te decizi — amândouă. 🌹🍌',
+    'Floare sau minion? Dacă nu te decizi, ia amândouă. 🌹🍌',
     'Vino cu 5 minute mai devreme. E gratis și impresionează.',
     'Ține o floare la spate și scoate-o ca din întâmplare. Clasic, dar funcționează. 🌼',
     'Ciocolată de rezervă în buzunar. N-a supărat pe nimeni vreodată. 🍫',
@@ -187,7 +186,7 @@ function buildInvite() {
   const at = state.t ? `, pe la ${state.t}` : '';
 
   const lines = [
-    `${a.e} ${who} ${a.p} ${p.p} — ${when}${at}.`,
+    `${a.e} ${who} ${a.p} ${p.p} ${when}${at}.`,
     opt('m', state.m).s,
     opt('w', state.w).s,
     `Se bea ${opt('b', state.b).p}. ${opt('b', state.b).e}`,
@@ -216,7 +215,7 @@ function buildReply() {
     lines.push('Ideea rămâne în picioare, doar data se mută.');
   } else {
     lines.push(`${me}Nu pot acum 😅`);
-    lines.push('Dar întreabă-mă din nou — data viitoare am șanse mari să zic da.');
+    lines.push('Dar întreabă-mă din nou, data viitoare am șanse mari să zic da.');
   }
 
   if (reply.rm.trim()) lines.push(`„${reply.rm.trim()}”`);
@@ -472,7 +471,7 @@ function initCompose() {
 
   $('send-btn').addEventListener('click', () => {
     buzz();
-    shareOrCopy(buildInvite(), buildUrl(), 'Invitația e copiată — dă-i paste 💌');
+    shareOrCopy(buildInvite(), buildUrl(), 'Invitația e copiată, dă-i paste 💌');
   });
   $('wa-btn').addEventListener('click', () => whatsapp(buildInvite(), buildUrl()));
   $('copy-btn').addEventListener('click', async () => {
@@ -570,7 +569,7 @@ function initInvite() {
 
   $('reply-send-btn').addEventListener('click', () => {
     buzz();
-    shareOrCopy(buildReply(), buildUrl(reply), 'Răspunsul e copiat — dă-i paste 📤');
+    shareOrCopy(buildReply(), buildUrl(reply), 'Răspunsul e copiat, dă-i paste 📤');
   });
   $('reply-wa-btn').addEventListener('click', () => whatsapp(buildReply(), buildUrl(reply)));
   $('reply-copy-btn').addEventListener('click', async () => {
@@ -585,7 +584,7 @@ function initAnswer() {
   const [eyebrow, plain, named] = ANSWER_TITLES[reply.ra] || ANSWER_TITLES.yes;
   $('answer-eyebrow').textContent = eyebrow;
   $('answer-title').textContent = reply.rn.trim() ? `${reply.rn.trim()} ${named}` : plain;
-  $('answer-text').textContent = `${buildReply()}\n\n— la invitația ta —\n${buildInvite()}`;
+  $('answer-text').textContent = `${buildReply()}\n\nla invitația ta:\n${buildInvite()}`;
 
   $('new-btn').addEventListener('click', () => {
     location.href = location.href.split('#')[0].split('?')[0];
