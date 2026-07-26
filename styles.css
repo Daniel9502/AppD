@@ -177,6 +177,51 @@ textarea { resize: vertical; line-height: 1.5; }
   opacity: .7;
 }
 
+/* --- Șabloane rapide --- */
+.presets {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .5rem;
+  margin-bottom: 1.3rem;
+}
+
+.preset {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: .1rem;
+  min-height: 62px;
+  padding: .6rem .75rem;
+  font-family: inherit;
+  text-align: left;
+  color: var(--text);
+  background: var(--accent-soft);
+  border: 1.5px solid var(--chip-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform .12s ease, border-color .2s;
+}
+.preset:active { transform: scale(.95); border-color: var(--accent); }
+.preset-title { font-size: .95rem; font-weight: 700; line-height: 1.2; }
+.preset-sub { font-size: .76rem; font-weight: 500; color: var(--text-soft); }
+
+/* --- Numărătoare inversă --- */
+.countdown {
+  display: inline-block;
+  margin: 0 0 .7rem;
+  padding: .3rem .8rem;
+  font-size: .85rem;
+  font-weight: 700;
+  color: var(--accent-ink);
+  background: var(--accent);
+  border-radius: 999px;
+}
+
+.cal-row { margin: -.3rem 0 1rem; }
+.actions-bar .btn-big + .btn-big { margin-top: .6rem; }
+
 .name-row { display: flex; gap: .55rem; margin-bottom: 1.2rem; }
 .name-row input { flex: 1; min-width: 0; }
 .btn-surprise { flex: 0 0 auto; padding-inline: .85rem; }
@@ -403,9 +448,17 @@ textarea { resize: vertical; line-height: 1.5; }
   .hero { padding-top: 3rem; }
 }
 
+/* --- Tranziții între ecrane (unde browserul le suportă) --- */
+@keyframes vt-out { to   { opacity: 0; transform: translateY(-10px) scale(.99); } }
+@keyframes vt-in  { from { opacity: 0; transform: translateY(14px)  scale(.99); } }
+
+::view-transition-old(root) { animation: vt-out .18s ease both; }
+::view-transition-new(root) { animation: vt-in  .3s  cubic-bezier(.2, .9, .3, 1.1) both; }
+
 /* --- Mișcare redusă --- */
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
 }
 
 /* Ultima regulă: câștigă întotdeauna peste display-ul componentelor */

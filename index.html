@@ -7,7 +7,13 @@
   <meta name="description" content="Fă o invitație frumoasă în 5 tap-uri și trimite-o. Rapid, simplu, cu zâmbet inclus." />
   <title>Hai să ne vedem 🌙</title>
   <link rel="stylesheet" href="styles.css" />
+  <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌙</text></svg>" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Hai să ne vedem" />
 </head>
 <body>
   <canvas id="sky" aria-hidden="true"></canvas>
@@ -27,6 +33,9 @@
       </header>
 
       <div class="card">
+        <span class="group-label">Cel mai rapid: alege un șablon</span>
+        <div class="presets" id="presets"></div>
+
         <div class="name-row">
           <input type="text" id="senderName" placeholder="Numele tău" autocomplete="given-name"
                  enterkeyhint="done" maxlength="24" aria-label="Numele tău" />
@@ -63,6 +72,9 @@
           <button id="wa-btn" class="btn btn-ghost" type="button">WhatsApp</button>
           <button id="copy-btn" class="btn btn-ghost" type="button">Copiază linkul</button>
         </div>
+        <button id="install-btn" class="btn btn-ghost btn-big hidden" type="button">
+          📲 Pune-o pe ecranul telefonului
+        </button>
       </div>
     </section>
 
@@ -73,7 +85,12 @@
       </header>
 
       <div class="card invite-card">
+        <p class="countdown hidden" id="countdown"></p>
         <p class="preview big" id="invite-text"></p>
+      </div>
+
+      <div class="actions-row cal-row">
+        <button id="cal-btn" class="btn btn-ghost" type="button">📅 Salvează în calendar</button>
       </div>
 
       <button id="guest-tip-card" class="tip" type="button">
@@ -123,6 +140,7 @@
       </div>
 
       <div class="actions-bar">
+        <button id="answer-cal-btn" class="btn btn-primary btn-big hidden" type="button">📅 Salvează în calendar</button>
         <button id="new-btn" class="btn btn-ghost btn-big" type="button">✍️ Fă altă invitație</button>
       </div>
     </section>

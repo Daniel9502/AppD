@@ -102,6 +102,18 @@ const TIPS = {
   ],
 };
 
+/* Șabloane: o atingere completează toată invitația. */
+const PRESETS = [
+  { e: '☕', t: 'Cafea rapidă',  sub: 'azi, pe terasă',
+    v: { a: 'cafea', p: 'terasa', t: '17:00', m: 'acolo', w: 'lejer', b: 'cafea', day: 0 } },
+  { e: '🌳', t: 'Plimbare',      sub: 'mâine, în parc',
+    v: { a: 'plimbare', p: 'parc', t: '19:00', m: 'masina', w: 'lejer', b: 'suc', day: 1 } },
+  { e: '🍦', t: 'Înghețată',     sub: 'azi, prin oraș',
+    v: { a: 'inghetata', p: 'oras', t: '19:00', m: 'jos', w: 'lejer', b: 'limonada', day: 0 } },
+  { e: '🌆', t: 'Seară frumoasă', sub: 'sâmbătă, elegant',
+    v: { a: 'mancare', p: 'terasa', t: '21:00', m: 'masina', w: 'elegant', b: 'vin', day: 'sat' } },
+];
+
 const SURPRISE_TOASTS = [
   'Gata, ți-am ales eu 🎲',
   'Am decis pentru tine. Cu plăcere 😌',
@@ -147,6 +159,27 @@ const reply = { ra: '', rn: '', rp: '', rd: '', rt: '', rm: '' };
 function opt(group, id) {
   const list = OPTIONS[group];
   return list.find(o => o.id === id) || list[0];
+}
+
+/* --- Memorie locală: a doua invitație pornește de unde ai rămas --- */
+
+const STORE_KEY = 'ultima-invitatie';
+
+function remember() {
+  try {
+    const keep = {};
+    KEYS.forEach(k => { if (k !== 'n') keep[k] = state[k]; });
+    localStorage.setItem(STORE_KEY, JSON.stringify(keep));
+  } catch (_) { /* modul privat sau spațiu plin */ }
+}
+
+function recall() {
+  let saved;
+  try { saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); } catch (_) { return; }
+  if (!saved) return;
+  KEYS.forEach(k => { if (typeof saved[k] === 'string') state[k] = saved[k]; });
+  // O dată trecută n-are sens: o mutăm pe mâine.
+  if (state.d && state.d < isoOffset(0)) state.d = isoOffset(1);
 }
 
 function buildUrl(extra) {
@@ -229,6 +262,91 @@ const ANSWER_TITLES = {
   late: ['🗓️ ai primit un răspuns', 'Da, dar altă dată',   'zice: hai altă dată'],
   no:   ['😅 ai primit un răspuns', 'Nu de data asta',     'nu poate acum'],
 };
+
+/* ------------------------------------- 3b. CEAS ȘI CALENDAR */
+
+/** Acordul numeralului în română: 1 minut, 5 minute, 20 de minute. */
+function ro(n, one, many) {
+  if (n === 1) return `${n} ${one}`;
+  const r = n % 100;
+  return r >= 1 && r <= 19 ? `${n} ${many}` : `${n} de ${many}`;
+}
+
+function eventDate() {
+  if (!state.d) return null;
+  const d = new Date(`${state.d}T${state.t || '19:00'}`);
+  return isNaN(d) ? null : d;
+}
+
+function countdownText() {
+  const d = eventDate();
+  if (!d) return '';
+  const now = new Date();
+  const ms = d - now;
+
+  if (ms < -2 * 3600e3) return '';
+  if (ms <= 0) return '🎉 Chiar acum!';
+
+  // Sub trei ore contează ceasul, nu calendarul: la 23:59, „peste 8 minute”
+  // e mai util decât „mâine, la 00:07”.
+  const min = Math.round(ms / 60000);
+  if (min < 60) return `⏳ Peste ${ro(min, 'minut', 'minute')}!`;
+  if (min < 180) return `⏳ Peste ${ro(Math.round(ms / 3600e3), 'oră', 'ore')}`;
+
+  const midnight = x => { const c = new Date(x); c.setHours(0, 0, 0, 0); return c; };
+  const days = Math.round((midnight(d) - midnight(now)) / 86400000);
+
+  if (days === 0) return `⏳ Azi, peste ${ro(Math.round(ms / 3600e3), 'oră', 'ore')}`;
+  if (days === 1) return `⏳ Mâine${state.t ? `, la ${state.t}` : ''}`;
+  return `⏳ Mai sunt ${ro(days, 'zi', 'zile')}`;
+}
+
+/** Fișier .ics, ca invitația să ajungă direct în calendarul telefonului. */
+function buildIcs() {
+  const d = eventDate();
+  if (!d) return null;
+  const end = new Date(d.getTime() + 90 * 60000);
+
+  const p = n => String(n).padStart(2, '0');
+  const local = x => `${x.getFullYear()}${p(x.getMonth() + 1)}${p(x.getDate())}T${p(x.getHours())}${p(x.getMinutes())}00`;
+  const utc = x => x.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+  const esc = s => String(s).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+
+  // RFC 5545: liniile nu trec de 75 de octeți, se continuă cu un spațiu.
+  const enc = new TextEncoder();
+  const fold = line => {
+    const out = [];
+    let cur = '', bytes = 0;
+    for (const ch of line) {
+      const n = enc.encode(ch).length;
+      if (bytes + n > 73) { out.push(cur); cur = ' '; bytes = 1; }
+      cur += ch;
+      bytes += n;
+    }
+    out.push(cur);
+    return out.join('\r\n');
+  };
+
+  const who = state.s.trim();
+  const summary = `${opt('a', state.a).l}${who ? ` cu ${who}` : ''}`;
+
+  return [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Hai sa ne vedem//RO',
+    'CALSCALE:GREGORIAN',
+    'BEGIN:VEVENT',
+    `UID:${state.d}-${(state.t || '19:00').replace(':', '')}-${state.a}@hai-sa-ne-vedem`,
+    `DTSTAMP:${utc(new Date())}`,
+    `DTSTART:${local(d)}`,
+    `DTEND:${local(end)}`,
+    fold(`SUMMARY:${esc(summary)}`),
+    fold(`LOCATION:${esc(opt('p', state.p).p)}`),
+    fold(`DESCRIPTION:${esc(buildInvite())}`),
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ].join('\r\n');
+}
 
 /* ----------------------------------------------------------- 4. CHIP-URI */
 
@@ -373,11 +491,30 @@ function whatsapp(text, url) {
   window.open(`https://wa.me/?text=${encodeURIComponent(`${text}\n\n${url}`)}`, '_blank', 'noopener');
 }
 
+function downloadIcs() {
+  const ics = buildIcs();
+  if (!ics) { toast('Alege întâi o dată 🗓️'); return; }
+  const url = URL.createObjectURL(new Blob([ics], { type: 'text/calendar;charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'invitatie.ics';
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  toast('Deschide fișierul ca să-l pui în calendar 📅');
+}
+
 function show(viewId) {
-  ['view-compose', 'view-invite', 'view-answer'].forEach(id => {
-    $(id).classList.toggle('hidden', id !== viewId);
-  });
-  window.scrollTo(0, 0);
+  const swap = () => {
+    ['view-compose', 'view-invite', 'view-answer'].forEach(id => {
+      $(id).classList.toggle('hidden', id !== viewId);
+    });
+    window.scrollTo(0, 0);
+  };
+  // Tranziție lină acolo unde browserul o suportă; altfel, schimbare directă.
+  if (document.startViewTransition) document.startViewTransition(swap);
+  else swap();
 }
 
 /* ------------------------------------------------- 6. VIEW: COMPOZITOR */
@@ -410,13 +547,56 @@ function renderPreview() {
   $('preview').textContent = buildInvite();
 }
 
-/** Pontul se schimbă doar când schimbi cine ești — nu la fiecare literă. */
+/** Pontul se schimbă doar când schimbi cine ești, nu la fiecare literă. */
 function onComposeChange(key) {
   renderPreview();
+  remember();
   if (key === 'g') { tipIndex = 0; renderTip(); }
 }
 
+/** Dacă ora aleasă a trecut deja azi, mutăm întâlnirea pe mâine. */
+function ensureFuture() {
+  const d = eventDate();
+  if (d && d < new Date()) state.d = isoOffset(1);
+}
+
+function applyPreset(p) {
+  Object.entries(p.v).forEach(([k, v]) => { if (k !== 'day') state[k] = v; });
+  state.d = p.v.day === 'sat' ? nextSaturday() : isoOffset(p.v.day);
+  ensureFuture();
+  composeSyncs.forEach(fn => fn());
+  renderPreview();
+  remember();
+  buzz(18);
+  toast(`${p.e} Gata! Poți trimite.`);
+  $('send-btn').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function renderPresets() {
+  const host = $('presets');
+  PRESETS.forEach(p => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'preset';
+
+    const t = document.createElement('span');
+    t.className = 'preset-title';
+    t.textContent = `${p.e} ${p.t}`;
+
+    const s = document.createElement('span');
+    s.className = 'preset-sub';
+    s.textContent = p.sub;
+
+    b.append(t, s);
+    b.addEventListener('click', () => applyPreset(p));
+    host.append(b);
+  });
+}
+
 function initCompose() {
+  recall();
+  renderPresets();
+
   const host = $('chip-groups');
   const extraHost = $('extra-groups');
   composeGroups.forEach(def => {
@@ -436,9 +616,11 @@ function initCompose() {
     buzz();
   });
 
+  $('senderName').value = state.s;
   $('senderName').addEventListener('input', e => {
     state.s = e.target.value;
     renderPreview();
+    remember();
   });
 
   $('note').addEventListener('input', e => {
@@ -463,8 +645,10 @@ function initCompose() {
     state.b = rnd(OPTIONS.b).id;
     state.d = rnd([isoOffset(0), isoOffset(1), nextSaturday()]);
     state.t = rnd(HOURS);
+    ensureFuture();
     composeSyncs.forEach(fn => fn());
     renderPreview();
+    remember();
     buzz(18);
     toast(rnd(SURPRISE_TOASTS));
   });
@@ -532,8 +716,20 @@ function renderGuestTip() {
   el.style.animation = '';
 }
 
+function renderCountdown() {
+  const txt = countdownText();
+  const el = $('countdown');
+  el.textContent = txt;
+  el.classList.toggle('hidden', !txt);
+}
+
 function initInvite() {
   $('invite-text').textContent = buildInvite();
+
+  renderCountdown();
+  setInterval(renderCountdown, 30000);
+
+  $('cal-btn').addEventListener('click', () => { buzz(); downloadIcs(); });
 
   guestTipIndex = Math.floor(Math.random() * 8);
   renderGuestTip();
@@ -585,6 +781,13 @@ function initAnswer() {
   $('answer-eyebrow').textContent = eyebrow;
   $('answer-title').textContent = reply.rn.trim() ? `${reply.rn.trim()} ${named}` : plain;
   $('answer-text').textContent = `${buildReply()}\n\nla invitația ta:\n${buildInvite()}`;
+
+  // Dacă a zis da, are sens să pui întâlnirea în calendar.
+  if (reply.ra === 'yes' && eventDate()) {
+    const cal = $('answer-cal-btn');
+    cal.classList.remove('hidden');
+    cal.addEventListener('click', () => { buzz(); downloadIcs(); });
+  }
 
   $('new-btn').addEventListener('click', () => {
     location.href = location.href.split('#')[0].split('?')[0];
@@ -651,7 +854,7 @@ const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
 let W = 0, H = 0, DPR = 1;
 let starLayer = null, glowSprite = null;
-let flies = [], twinklers = [], shooting = null, nextShot = 4000;
+let flies = [], twinklers = [], shots = [], nextShot = 4000;
 let skyRaf = 0, lastFrame = 0;
 
 function makeGlow() {
@@ -740,7 +943,18 @@ function initSky() {
   }));
 
   nextShot = 3000 + Math.random() * 7000;
-  shooting = null;
+  shots = [];
+}
+
+function spawnShot(x, y) {
+  if (shots.length > 6) return;
+  shots.push({
+    x: x != null ? x : Math.random() * W * 0.7,
+    y: y != null ? y : Math.random() * H * 0.35,
+    len: 90 + Math.random() * 120,
+    life: 0,
+    dur: 620,
+  });
 }
 
 function drawSky(now, dt) {
@@ -785,39 +999,32 @@ function drawSky(now, dt) {
     sctx.fill();
   }
 
-  // Stea căzătoare, din când în când
+  // Stele căzătoare: una din când în când, plus una la fiecare atingere a cerului
   nextShot -= dt;
-  if (!shooting && nextShot <= 0) {
-    shooting = {
-      x: Math.random() * W * 0.7,
-      y: Math.random() * H * 0.35,
-      len: 90 + Math.random() * 120,
-      life: 0,
-      dur: 620,
-    };
+  if (nextShot <= 0) {
+    spawnShot();
     nextShot = 9000 + Math.random() * 14000;
   }
-  if (shooting) {
-    shooting.life += dt;
-    const k = shooting.life / shooting.dur;
-    if (k >= 1) {
-      shooting = null;
-    } else {
-      const travel = k * (W * 0.45);
-      const hx = shooting.x + travel, hy = shooting.y + travel * 0.55;
-      const tx = hx - shooting.len * 0.9, ty = hy - shooting.len * 0.5;
-      const grd = sctx.createLinearGradient(tx, ty, hx, hy);
-      grd.addColorStop(0, 'rgba(255,255,255,0)');
-      grd.addColorStop(1, 'rgba(255,255,255,0.9)');
-      sctx.globalAlpha = Math.sin(k * Math.PI);
-      sctx.strokeStyle = grd;
-      sctx.lineWidth = 1.8;
-      sctx.lineCap = 'round';
-      sctx.beginPath();
-      sctx.moveTo(tx, ty);
-      sctx.lineTo(hx, hy);
-      sctx.stroke();
-    }
+  for (let i = shots.length - 1; i >= 0; i--) {
+    const s = shots[i];
+    s.life += dt;
+    const k = s.life / s.dur;
+    if (k >= 1) { shots.splice(i, 1); continue; }
+
+    const travel = k * (W * 0.45);
+    const hx = s.x + travel, hy = s.y + travel * 0.55;
+    const tx = hx - s.len * 0.9, ty = hy - s.len * 0.5;
+    const grd = sctx.createLinearGradient(tx, ty, hx, hy);
+    grd.addColorStop(0, 'rgba(255,255,255,0)');
+    grd.addColorStop(1, 'rgba(255,255,255,0.9)');
+    sctx.globalAlpha = Math.sin(k * Math.PI);
+    sctx.strokeStyle = grd;
+    sctx.lineWidth = 1.8;
+    sctx.lineCap = 'round';
+    sctx.beginPath();
+    sctx.moveTo(tx, ty);
+    sctx.lineTo(hx, hy);
+    sctx.stroke();
   }
 
   sctx.globalAlpha = 1;
@@ -860,6 +1067,13 @@ addEventListener('resize', () => {
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) stopSky(); else startSky();
 });
+
+// Atingi cerul pe lângă butoane → cade o stea de acolo. 🌠
+document.addEventListener('click', e => {
+  if (!skyRaf || document.documentElement.dataset.theme !== 'night') return;
+  if (e.target.closest('button, input, textarea, select, a, label')) return;
+  spawnShot(e.clientX - 60, e.clientY - 35);
+}, { passive: true });
 
 /* --------------------------------------------------------- 11. TEMA */
 
@@ -912,6 +1126,49 @@ function readUrl() {
   return { hasInvite, hasReply };
 }
 
+/* Instalare pe ecranul telefonului: butonul apare doar dacă se poate. */
+function initInstall() {
+  const btn = $('install-btn');
+  let deferred = null;
+
+  addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferred = e;
+    btn.classList.remove('hidden');
+  });
+
+  btn.addEventListener('click', async () => {
+    if (!deferred) return;
+    btn.classList.add('hidden');
+    deferred.prompt();
+    const { outcome } = await deferred.userChoice;
+    deferred = null;
+    if (outcome === 'accepted') toast('Gata, o ai pe ecran 📲');
+  });
+
+  addEventListener('appinstalled', () => {
+    btn.classList.add('hidden');
+    toast('Instalată! Acum pornește instant 🚀');
+  });
+}
+
+/* Service worker: pornire instantanee și funcționare fără internet. */
+function initServiceWorker() {
+  if (!('serviceWorker' in navigator) || location.protocol !== 'https:') return;
+
+  navigator.serviceWorker.register('./sw.js').then(reg => {
+    reg.addEventListener('updatefound', () => {
+      const fresh = reg.installing;
+      if (!fresh) return;
+      fresh.addEventListener('statechange', () => {
+        if (fresh.state === 'installed' && navigator.serviceWorker.controller) {
+          toast('Versiune nouă ✨ Reîncarcă pagina.');
+        }
+      });
+    });
+  }).catch(() => { /* fără cache offline, aplicația merge la fel */ });
+}
+
 (function main() {
   initTheme();
 
@@ -925,6 +1182,9 @@ function readUrl() {
     show('view-invite');
   } else {
     initCompose();
+    initInstall();
     show('view-compose');
   }
+
+  initServiceWorker();
 })();
