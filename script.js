@@ -223,11 +223,12 @@ function buildReply() {
   return lines.join('\n');
 }
 
+/* [ochiul de sus, titlu fără nume, titlu cu nume] */
 const ANSWER_TITLES = {
-  yes:  ['🎉 ai primit un răspuns', 'A zis DA!'],
-  neg:  ['😄 ai primit un răspuns', 'Contrapropunere'],
-  late: ['🗓️ ai primit un răspuns', 'Da, dar altă dată'],
-  no:   ['😅 ai primit un răspuns', 'Nu de data asta'],
+  yes:  ['🎉 ai primit un răspuns', 'A zis DA!',           'a zis DA!'],
+  neg:  ['😄 ai primit un răspuns', 'Contrapropunere',     'are o contrapropunere'],
+  late: ['🗓️ ai primit un răspuns', 'Da, dar altă dată',   'zice: hai altă dată'],
+  no:   ['😅 ai primit un răspuns', 'Nu de data asta',     'nu poate acum'],
 };
 
 /* ----------------------------------------------------------- 4. CHIP-URI */
@@ -388,9 +389,10 @@ const composeGroups = [
   { key: 'p', label: 'Unde?',       items: optItems('p') },
   { key: 'd', label: 'Când?',       items: dateItems(), custom: 'date', customLabel: 'Altă dată' },
   { key: 't', label: 'La ce oră?',  items: hourItems(), custom: 'time', customLabel: 'Altă oră' },
-  { key: 'm', label: 'Cum ajungem?',items: optItems('m') },
-  { key: 'w', label: 'Ținuta',      items: optItems('w') },
-  { key: 'b', label: 'Ce bem?',     items: optItems('b') },
+  // Cele de mai jos sunt ascunse implicit — invitația merge și fără ele.
+  { key: 'm', label: 'Cum ajungem?',items: optItems('m'), extra: true },
+  { key: 'w', label: 'Ținuta',      items: optItems('w'), extra: true },
+  { key: 'b', label: 'Ce bem?',     items: optItems('b'), extra: true },
 ];
 
 const composeSyncs = [];
@@ -417,7 +419,17 @@ function onComposeChange(key) {
 
 function initCompose() {
   const host = $('chip-groups');
-  composeGroups.forEach(def => composeSyncs.push(renderGroup(host, def, state, onComposeChange)));
+  const extraHost = $('extra-groups');
+  composeGroups.forEach(def => {
+    composeSyncs.push(renderGroup(def.extra ? extraHost : host, def, state, onComposeChange));
+  });
+
+  $('extra-toggle').addEventListener('click', () => {
+    const open = extraHost.classList.toggle('hidden') === false;
+    $('extra-toggle').setAttribute('aria-expanded', String(open));
+    $('extra-toggle').textContent = open ? '➖ Ascunde detaliile' : '➕ Detalii: transport, ținută, ce bem';
+    buzz();
+  });
 
   $('tip-card').addEventListener('click', () => {
     tipIndex++;
@@ -570,9 +582,9 @@ function initInvite() {
 /* ------------------------------------------- 8. VIEW: RĂSPUNSUL PRIMIT */
 
 function initAnswer() {
-  const [eyebrow, title] = ANSWER_TITLES[reply.ra] || ANSWER_TITLES.yes;
+  const [eyebrow, plain, named] = ANSWER_TITLES[reply.ra] || ANSWER_TITLES.yes;
   $('answer-eyebrow').textContent = eyebrow;
-  $('answer-title').textContent = reply.rn.trim() ? `${reply.rn.trim()} ${title.toLowerCase()}` : title;
+  $('answer-title').textContent = reply.rn.trim() ? `${reply.rn.trim()} ${named}` : plain;
   $('answer-text').textContent = `${buildReply()}\n\n— la invitația ta —\n${buildInvite()}`;
 
   $('new-btn').addEventListener('click', () => {
@@ -835,6 +847,7 @@ function stopSky() {
 
 let resizeTimer = 0;
 addEventListener('resize', () => {
+  if (document.documentElement.dataset.theme !== 'night') return;
   // Pe telefon, bara de adresă care se ascunde declanșează resize — filtrăm zgomotul.
   if (Math.abs(innerWidth - W) < 2 && Math.abs(innerHeight - H) < 120) return;
   clearTimeout(resizeTimer);

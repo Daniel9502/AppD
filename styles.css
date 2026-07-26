@@ -244,6 +244,7 @@ textarea { resize: vertical; line-height: 1.5; }
 }
 .note-toggle:active { transform: scale(.98); }
 .note { margin-top: .55rem; }
+.extra-groups { margin-top: 1.1rem; }
 
 /* --- Pont (tip) --- */
 .tip {
