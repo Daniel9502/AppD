@@ -642,8 +642,13 @@ function show(viewId) {
     window.scrollTo(0, 0);
   };
   // Tranziție lină acolo unde browserul o suportă; altfel, schimbare directă.
-  if (document.startViewTransition) document.startViewTransition(swap);
-  else swap();
+  // O tranziție sărită (navigare rapidă, pagină ascunsă) își respinge
+  // promisiunile: nu e o eroare, dar fără catch ar umple consola cu una.
+  if (document.startViewTransition) {
+    const t = document.startViewTransition(swap);
+    t.ready.catch(() => {});
+    t.finished.catch(() => {});
+  } else swap();
 }
 
 /* ------------------------------------------------- 6. VIEW: COMPOZITOR */
@@ -715,7 +720,7 @@ function autoGrow(ta) {
  * Leagă un card de previzualizare la un câmp de text.
  * `read` întoarce textul curent, `write` îl pune în stare, `auto` îl șterge.
  */
-function wireEditor({ view, edit, label, editBtn, resetBtn, read, write, isCustom, onChange }) {
+function wireEditor({ view, edit, label, editBtn, resetBtn, hint, read, write, isCustom, onChange }) {
   const ta = $(edit);
 
   const paint = () => {
@@ -729,6 +734,7 @@ function wireEditor({ view, edit, label, editBtn, resetBtn, read, write, isCusto
     ta.classList.toggle('hidden', !yes);
     $(view).classList.toggle('hidden', yes);
     $(editBtn).textContent = yes ? '✔️ Gata' : '✏️ Schimbă textul';
+    if (hint) $(hint).classList.toggle('hidden', !yes);
     if (yes) { ta.value = read(); autoGrow(ta); ta.focus(); }
   };
 
@@ -822,7 +828,7 @@ function initCompose() {
 
   inviteEditor = wireEditor({
     view: 'preview', edit: 'preview-edit', label: 'preview-label',
-    editBtn: 'edit-btn', resetBtn: 'reset-btn',
+    editBtn: 'edit-btn', resetBtn: 'reset-btn', hint: 'edit-hint',
     read: buildInvite,
     write: (v) => { state.x = v; },
     isCustom: () => !!state.x.trim(),

@@ -7,6 +7,24 @@ singură la toată lumea.
 
 De ce s-a ales fiecare pas scrie în [RESEARCH.md](RESEARCH.md).
 
+## 0.4 — curățenie după primul drum cap-coadă pe viu
+
+Prima versiune verificată pe site-ul live, cu Firestore adevărat în spate:
+regulile și indecșii sunt urcați, iar fluxul întreg — compune, trimite,
+negociază, bate palma — a fost umblat cu doi utilizatori în paralel, pe
+telefon (390px), pe ecran mic (320px) și pe desktop. Din drumul ăsta au ieșit
+două lucruri:
+
+- **Consola nu se mai umple de „Transition was skipped”.** Tranzițiile dintre
+  ecrane își resping promisiunile când navighezi repede sau când pagina e
+  ascunsă. Nu strica nimic, dar fiecare navigare grăbită lăsa o eroare falsă
+  în consolă, iar erorile false îngroapă erorile adevărate.
+- **Câmpul de rescriere spune acum ce nu face.** Textul rescris de mână e
+  liber, dar ceasul, calendarul și rândul din listă merg după chip-uri. Cine
+  scria „sâmbătă” în text și nu muta chip-ul afla abia după ce trimitea, de la
+  celălalt. Acum scrie chiar sub câmp: *mută și ziua de mai jos dacă o schimbi
+  în text*.
+
 ## 0.3 — linkul arată a ceva, și nu mai uiți de întâlnire
 
 **Cardul din conversație.** Până acum, linkul trimis pe WhatsApp apărea ca un

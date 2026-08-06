@@ -126,6 +126,12 @@
         <p class="preview" id="preview"></p>
         <textarea id="preview-edit" class="preview-edit hidden" rows="7" maxlength="600"
                   aria-label="Textul invitației"></textarea>
+        <!-- Textul e liber, dar ceasul și calendarul merg după chip-uri. Cine
+             scrie altă zi în text trebuie s-o afle acum, nu după ce a trimis. -->
+        <p id="edit-hint" class="edit-hint hidden">
+          Scrie ce vrei — dar ceasul și calendarul merg după ziua și ora alese
+          mai jos, așa că mută-le și pe ele dacă schimbi data.
+        </p>
         <div class="preview-tools">
           <button id="edit-btn" class="btn-link" type="button">✏️ Schimbă textul</button>
           <button id="reset-btn" class="btn-link btn-link-quiet hidden" type="button">↺ textul automat</button>
