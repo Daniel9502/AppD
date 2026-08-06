@@ -11,7 +11,9 @@ rules_version = '2';
  *   - o invitație e imutabilă după trimitere; nici expeditorul n-o mai poate schimba;
  *   - linkul e cheia: cine are id-ul poate deschide o invitație nerevendicată,
  *     dar nimeni nu poate răsfoi invitațiile nerevendicate ale altora;
- *   - doar destinatarul revendicat poate răspunde, o singură dată.
+ *   - doar destinatarul revendicat poate răspunde, o singură dată;
+ *   - dacă a răspuns cu o contrapropunere, expeditorul o poate accepta o
+ *     singură dată, și doar exact așa cum a fost propusă.
  */
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -72,6 +74,24 @@ service cloud.firestore {
           && incoming().createdAt == resource.data.createdAt;
       }
 
+      // Nicio actualizare nu poate strecura chei noi în document. `deal` e
+      // singura care se adaugă după creare, și numai prin regula ei.
+      function topKeysOk() {
+        return incoming().keys().hasOnly([
+          'fromUid', 'fromName', 'toUid', 'toName',
+          'payload', 'status', 'reply', 'createdAt', 'deal',
+        ]);
+      }
+
+      // Contrapropunerea invitatului: alt loc, altă zi, altă oră. Aceleași
+      // câmpuri ca în payload, ca expeditorul să vadă exact ce s-a mutat.
+      function counterOk(c) {
+        return c.keys().hasOnly(['p', 'd', 't'])
+          && c.p is string && c.p.size() <= 40
+          && c.d is string && c.d.size() <= 10
+          && c.t is string && c.t.size() <= 5;
+      }
+
       // Citire punctuală: expeditorul, destinatarul, sau oricine autentificat
       // dacă invitația e încă nerevendicată: linkul ține loc de cheie.
       allow get: if signedIn() && (
@@ -109,6 +129,8 @@ service cloud.firestore {
         && resource.data.toUid == null
         && uid() != resource.data.fromUid
         && frozen()
+        && topKeysOk()
+        && !('deal' in incoming())
         && incoming().toUid == uid()
         && incoming().toName is string
         && incoming().toName.size() <= 80
@@ -116,19 +138,48 @@ service cloud.firestore {
         && incoming().reply == null;
 
       // Răspuns: doar destinatarul revendicat, cu un status valid, iar
-      // răspunsul trebuie să spună același lucru ca statusul.
+      // răspunsul trebuie să spună același lucru ca statusul. Poate veni cu o
+      // contrapropunere, dar numai la răspunsurile care chiar propun altceva:
+      // un „nu pot” cu altă oră în el n-ar însemna nimic.
       allow update: if signedIn()
         && resource.data.toUid == uid()
         && frozen()
+        && topKeysOk()
+        && !('deal' in incoming())
         && incoming().toUid == uid()
         && incoming().toName == resource.data.toName
         && validStatus(incoming().status)
         && incoming().status != 'trimisa'
-        && incoming().reply.keys().hasOnly(['answer', 'note', 'at'])
+        && incoming().reply.keys().hasOnly(['answer', 'note', 'at', 'counter'])
         && incoming().reply.answer == incoming().status
         && incoming().reply.note is string
         && incoming().reply.note.size() <= 400
-        && incoming().reply.at == request.time;
+        && incoming().reply.at == request.time
+        && (!('counter' in incoming().reply) || (
+             incoming().status in ['negociem', 'alta-data']
+             && counterOk(incoming().reply.counter)
+           ));
+
+      // Bate palma: expeditorul acceptă contrapropunerea. Nu atinge nici
+      // invitația, nici răspunsul; doar scrie ce s-a convenit, o dată, și
+      // exact ce a propus celălalt. Fără egalitățile astea, „acceptă” ar fi
+      // o portiță prin care expeditorul rescrie întâlnirea pe la spate.
+      allow update: if signedIn()
+        && resource.data.fromUid == uid()
+        && resource.data.status in ['negociem', 'alta-data']
+        && !('deal' in resource.data)
+        && 'counter' in resource.data.reply
+        && frozen()
+        && topKeysOk()
+        && incoming().toUid == resource.data.toUid
+        && incoming().toName == resource.data.toName
+        && incoming().status == resource.data.status
+        && incoming().reply == resource.data.reply
+        && incoming().deal.keys().hasOnly(['p', 'd', 't', 'at'])
+        && incoming().deal.p == resource.data.reply.counter.p
+        && incoming().deal.d == resource.data.reply.counter.d
+        && incoming().deal.t == resource.data.reply.counter.t
+        && incoming().deal.at == request.time;
 
       // Expeditorul își poate șterge invitația. Destinatarul, nu.
       allow delete: if signedIn() && resource.data.fromUid == uid();

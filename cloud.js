@@ -159,15 +159,44 @@ Cloud.claimInvite = async function claimInvite(id) {
   });
 };
 
-Cloud.reply = async function reply(id, status, note) {
+/** Curăță o contrapropunere: loc, zi, oră, atât. Nimic altceva nu trece. */
+function cleanCounter(c) {
+  if (!c || !c.d) return null;
+  return {
+    p: String(c.p || '').slice(0, 40),
+    d: String(c.d).slice(0, 10),
+    t: String(c.t || '').slice(0, 5),
+  };
+}
+
+/**
+ * Răspunsul invitatului. `counter` merge doar cu răspunsurile care propun
+ * altceva; la un „da” sau „nu pot” n-ar avea ce să însemne, iar regulile
+ * l-ar refuza oricum.
+ */
+Cloud.reply = async function reply(id, status, note, counter) {
   requireUser();
+  const payload = {
+    answer: status,
+    note: String(note || '').slice(0, 400),
+    at: fb.serverTimestamp(),
+  };
+  const c = (status === 'negociem' || status === 'alta-data') ? cleanCounter(counter) : null;
+  if (c) payload.counter = c;
+
+  await fb.updateDoc(fb.doc(db, 'invites', id), { status, reply: payload });
+};
+
+/**
+ * Bate palma: expeditorul acceptă contrapropunerea. Nu trimitem ce alege el,
+ * ci ce a propus celălalt, fiindcă exact asta verifică regulile.
+ */
+Cloud.acceptCounter = async function acceptCounter(id, counter) {
+  requireUser();
+  const c = cleanCounter(counter);
+  if (!c) throw new Error('Nu e nimic de acceptat.');
   await fb.updateDoc(fb.doc(db, 'invites', id), {
-    status,
-    reply: {
-      answer: status,
-      note: String(note || '').slice(0, 400),
-      at: fb.serverTimestamp(),
-    },
+    deal: { ...c, at: fb.serverTimestamp() },
   });
 };
 

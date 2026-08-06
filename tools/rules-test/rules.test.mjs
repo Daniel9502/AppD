@@ -36,6 +36,9 @@ const PAYLOAD = {
   t: '19:00', m: 'masina', w: 'lejer', b: 'cafea', n: '',
 };
 
+/** Contrapropunerea invitatului: alt loc, altă zi, altă oră. */
+const COUNTER = { p: 'terasa', d: '2026-08-12', t: '20:00' };
+
 /** Invitație validă, exact cum o trimite aplicația. */
 function newInvite(uid, name = 'Dani') {
   return {
@@ -361,6 +364,181 @@ describe('răspunsul la invitație', () => {
     await assertFails(updateDoc(doc(as('bogdan'), 'invites', ID), {
       status: 'da',
       reply: { answer: 'da', note: '', at: serverTimestamp(), esteAdmin: true },
+    }));
+  });
+
+  /* --- contrapropunerea structurată (0.2) --- */
+
+  const cu = (status, counter = { ...COUNTER }) => ({
+    ...answer(status),
+    reply: { ...answer(status).reply, counter },
+  });
+
+  test('contrapropunerea pleacă odată cu răspunsul', async () => {
+    await assertSucceeds(updateDoc(doc(as('bogdan'), 'invites', ID), cu('negociem')));
+  });
+
+  test('și „altă dată” poate propune altceva', async () => {
+    await assertSucceeds(updateDoc(doc(as('bogdan'), 'invites', ID), cu('alta-data')));
+  });
+
+  test('un „da” n-are ce contrapropune', async () => {
+    await assertFails(updateDoc(doc(as('bogdan'), 'invites', ID), cu('da')));
+  });
+
+  test('nici un „nu pot”', async () => {
+    await assertFails(updateDoc(doc(as('bogdan'), 'invites', ID), cu('nu-pot')));
+  });
+
+  test('câmpurile străine în contrapropunere sunt refuzate', async () => {
+    await assertFails(updateDoc(doc(as('bogdan'), 'invites', ID),
+      cu('negociem', { ...COUNTER, cinePlateste: 'ana' })));
+  });
+
+  test('contrapropunerea ține doar șiruri', async () => {
+    await assertFails(updateDoc(doc(as('bogdan'), 'invites', ID),
+      cu('negociem', { ...COUNTER, t: 20 })));
+  });
+
+  test('invitatul nu poate bate palma în locul expeditorului', async () => {
+    await assertFails(updateDoc(doc(as('bogdan'), 'invites', ID), {
+      ...cu('negociem'),
+      deal: { ...COUNTER, at: serverTimestamp() },
+    }));
+  });
+});
+
+/* ═══════════════════════════════════════════════ bate palma (0.2) ═══════ */
+
+/**
+ * Acceptul e singurul lucru care se mai adaugă la o invitație după trimitere,
+ * de aia are cele mai multe garanții: o singură dată, doar de expeditor, doar
+ * pe un răspuns care chiar a propus altceva, și exact ce s-a propus.
+ */
+describe('acceptarea contrapropunerii', () => {
+  const negociat = {
+    toUid: 'bogdan',
+    toName: 'Bogdan',
+    status: 'negociem',
+    reply: {
+      answer: 'negociem',
+      note: 'hai mai bine marți',
+      at: new Date('2026-08-02T10:00:00Z'),
+      counter: { ...COUNTER },
+    },
+  };
+
+  const batePalma = (deal = { ...COUNTER }) => ({ deal: { ...deal, at: serverTimestamp() } });
+
+  test('expeditorul acceptă ce i s-a propus', async () => {
+    await seedInvite(negociat);
+    await assertSucceeds(updateDoc(doc(as('ana'), 'invites', ID), batePalma()));
+  });
+
+  test('merge și pe „altă dată”', async () => {
+    await seedInvite({
+      ...negociat,
+      status: 'alta-data',
+      reply: { ...negociat.reply, answer: 'alta-data' },
+    });
+    await assertSucceeds(updateDoc(doc(as('ana'), 'invites', ID), batePalma()));
+  });
+
+  test('accepți exact ce s-a propus, nu ce ai vrea tu', async () => {
+    await seedInvite(negociat);
+    await assertFails(updateDoc(doc(as('ana'), 'invites', ID),
+      batePalma({ ...COUNTER, t: '07:00' })));
+  });
+
+  test('nici locul nu poate fi strecurat altul', async () => {
+    await seedInvite(negociat);
+    await assertFails(updateDoc(doc(as('ana'), 'invites', ID),
+      batePalma({ ...COUNTER, p: 'la-mine' })));
+  });
+
+  test('destinatarul nu-și acceptă singur contrapropunerea', async () => {
+    await seedInvite(negociat);
+    await assertFails(updateDoc(doc(as('bogdan'), 'invites', ID), batePalma()));
+  });
+
+  test('un străin nu bate nicio palmă', async () => {
+    await seedInvite(negociat);
+    await assertFails(updateDoc(doc(as('cristi'), 'invites', ID), batePalma()));
+  });
+
+  test('nu se bate palma de două ori', async () => {
+    await seedInvite({
+      ...negociat,
+      deal: { ...COUNTER, at: new Date('2026-08-03T10:00:00Z') },
+    });
+    await assertFails(updateDoc(doc(as('ana'), 'invites', ID), batePalma()));
+  });
+
+  test('nu se acceptă un răspuns care n-a propus nimic', async () => {
+    await seedInvite({
+      ...negociat,
+      reply: { answer: 'negociem', note: 'nu știu', at: new Date('2026-08-02T10:00:00Z') },
+    });
+    await assertFails(updateDoc(doc(as('ana'), 'invites', ID), batePalma()));
+  });
+
+  test('nu se acceptă un „nu pot”, oricâte i-ai lipi în el', async () => {
+    await seedInvite({
+      ...negociat,
+      status: 'nu-pot',
+      reply: { ...negociat.reply, answer: 'nu-pot' },
+    });
+    await assertFails(updateDoc(doc(as('ana'), 'invites', ID), batePalma()));
+  });
+
+  test('nici o invitație care încă așteaptă răspuns', async () => {
+    await seedInvite({ toUid: 'bogdan', toName: 'Bogdan' });
+    await assertFails(updateDoc(doc(as('ana'), 'invites', ID), batePalma()));
+  });
+
+  test('acceptul nu schimbă statusul', async () => {
+    await seedInvite(negociat);
+    await assertFails(updateDoc(doc(as('ana'), 'invites', ID), {
+      ...batePalma(),
+      status: 'da',
+    }));
+  });
+
+  test('acceptul nu rescrie răspunsul primit', async () => {
+    await seedInvite(negociat);
+    await assertFails(updateDoc(doc(as('ana'), 'invites', ID), {
+      ...batePalma(),
+      reply: { ...negociat.reply, note: 'a zis da, jur' },
+    }));
+  });
+
+  test('acceptul nu atinge invitația', async () => {
+    await seedInvite(negociat);
+    await assertFails(updateDoc(doc(as('ana'), 'invites', ID), {
+      ...batePalma(),
+      payload: { ...PAYLOAD, p: 'la-mine' },
+    }));
+  });
+
+  test('data înțelegerii vine de la server', async () => {
+    await seedInvite(negociat);
+    await assertFails(updateDoc(doc(as('ana'), 'invites', ID), {
+      deal: { ...COUNTER, at: new Date('2020-01-01') },
+    }));
+  });
+
+  test('câmpurile străine în înțelegere sunt refuzate', async () => {
+    await seedInvite(negociat);
+    await assertFails(updateDoc(doc(as('ana'), 'invites', ID), {
+      deal: { ...COUNTER, at: serverTimestamp(), platesteEl: true },
+    }));
+  });
+
+  test('nu se strecoară alte chei în document pe lângă înțelegere', async () => {
+    await seedInvite(negociat);
+    await assertFails(updateDoc(doc(as('ana'), 'invites', ID), {
+      ...batePalma(),
+      esteAdmin: true,
     }));
   });
 });

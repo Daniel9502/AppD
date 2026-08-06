@@ -15,6 +15,8 @@ Invitații rapide, haioase, trimise printr-un link. Intri cu contul Google, rest
 4. Persoana primește un link. Îl deschide, intră în cont, vede invitația și un **pont** despre ce să ia cu ea.
 5. Răspunde cu un buton: *DA!*, *hai să negociem*, *altă dată* sau *nu pot acum*.
 6. Răspunsul îți apare direct în **📬 Invitațiile mele**, live. Fără link înapoi.
+7. Dacă a propus altceva, vezi într-un tabel **ce s-a mutat** și baţi palma
+   dintr-un buton. Ce s-a convenit intră în ceas și în calendar.
 
 Numele nu se scrie nicăieri: vine din contul Google, și al tău și al celui care
 răspunde. Formularul n-are niciun câmp obligatoriu de completat cu mâna.
@@ -30,6 +32,13 @@ După aceea nimeni altcineva n-o mai poate vedea sau atinge.
 
 ## Ce e înăuntru
 
+- **Contrapropunerea nu e doar vorbă.** Când răspunde cu *hai să negociem* sau
+  *altă dată*, locul, ziua și ora alese pleacă și structurat, nu doar în text.
+  Ție îți apare un tabel cu ce s-a mutat — valoarea veche tăiată, cea nouă
+  alături — și un buton, **🤝 Bate palma**. Invitația trimisă rămâne neatinsă;
+  înțelegerea se scrie separat și de-acolo o iau ceasul și fișierul de calendar.
+  Regulile o păzesc strâns: doar tu poți accepta, o singură dată, și exact ce
+  ți s-a propus.
 - **Poți rescrie orice.** Sub previzualizare e **✏️ Schimbă textul**: se deschide
   un câmp cu textul întreg, îl schimbi cum vrei, iar el pleacă exact așa. Din
   clipa aia textul e al tău și chip-urile nu ți-l mai suprascriu, ca să nu-l
@@ -67,7 +76,10 @@ După aceea nimeni altcineva n-o mai poate vedea sau atinge.
 | `script.js` | date, generarea textelor, cerul cu licurici, confetti, rutarea |
 | `cloud.js` | contul Google și invitațiile în Firestore |
 | `firebase-config.js` | cheile proiectului `app-d-24f03`, cu pașii din consolă înăuntru |
-| `firestore.rules` | cine ce poate citi și scrie; 51 de teste în `tools/rules-test/` |
+| `version.js` | numărul de versiune, citit și de pagină, și de service worker |
+| `firestore.rules` | cine ce poate citi și scrie; 74 de teste în `tools/rules-test/` |
+| `CHANGELOG.md` | ce s-a schimbat la fiecare versiune |
+| `RESEARCH.md` | ce fac aplicațiile concurente și ce luăm de la ele |
 | `graph/` | exploratorul de graf (vezi mai jos) |
 | `flutter_graf/` | același explorator, scris în Dart peste Flutter |
 
@@ -145,7 +157,7 @@ browser. Singurul lucru care apără baza de date e `firestore.rules`. De aia ar
 teste, rulate pe emulator, fără să atingă vreun proiect real:
 
 ```bash
-cd tools/rules-test && npm install && npm test    # 51 de teste
+cd tools/rules-test && npm install && npm test    # 74 de teste
 ```
 
 Ce garantează, pe scurt:
@@ -156,6 +168,9 @@ Ce garantează, pe scurt:
 - **primul care o deschide** devine destinatar; al doilea nu mai poate;
 - doar destinatarul răspunde, cu unul din cele patru răspunsuri, iar textul
   răspunsului trebuie să spună același lucru ca statusul;
+- **contrapropunerea** merge doar cu răspunsurile care chiar propun altceva, iar
+  **acceptul** e doar al expeditorului, o singură dată, și exact ce s-a propus:
+  dacă schimbă o oră pe drum, regula respinge;
 - ștergerea e doar a expeditorului.
 
 ## Dezvoltare

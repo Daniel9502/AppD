@@ -245,6 +245,15 @@ const DEFAULTS = { ...state };
 /* `rx` e răspunsul rescris de mână, la fel ca `x` la invitație. */
 const reply = { ra: '', rn: '', rp: '', rd: '', rt: '', rm: '', rx: '' };
 
+/* Ce s-a convenit până la urmă, când invitatul a propus altceva și
+   expeditorul a bătut palma: `{ p, d, t }`, sau `null` dacă n-a fost cazul.
+   Îl ținem separat de `state`, ca invitația trimisă să rămână exact cum a
+   plecat. Ceasul și calendarul se uită întâi aici. */
+let agreed = null;
+
+/** Locul, ziua și ora care contează acum: înțelegerea, dacă există. */
+const settled = () => agreed || { p: state.p, d: state.d, t: state.t };
+
 /* Numele tău vine din contul Google, nu-l mai cerem în formular. Îl ținem
    separat de `state.s`, fiindcă acolo ajunge și numele altcuiva când citești
    o invitație primită. */
@@ -382,8 +391,9 @@ function ro(n, one, many) {
 }
 
 function eventDate() {
-  if (!state.d) return null;
-  const d = new Date(`${state.d}T${state.t || '19:00'}`);
+  const w = settled();
+  if (!w.d) return null;
+  const d = new Date(`${w.d}T${w.t || '19:00'}`);
   return isNaN(d) ? null : d;
 }
 
@@ -406,7 +416,7 @@ function countdownText() {
   const days = Math.round((midnight(d) - midnight(now)) / 86400000);
 
   if (days === 0) return `⏳ Azi, peste ${ro(Math.round(ms / 3600e3), 'oră', 'ore')}`;
-  if (days === 1) return `⏳ Mâine${state.t ? `, la ${state.t}` : ''}`;
+  if (days === 1) return `⏳ Mâine${settled().t ? `, la ${settled().t}` : ''}`;
   return `⏳ Mai sunt ${ro(days, 'zi', 'zile')}`;
 }
 
@@ -438,6 +448,13 @@ function buildIcs() {
 
   const who = state.s.trim();
   const summary = `${opt('a', state.a).l}${who ? ` cu ${who}` : ''}`;
+  const where = opt('p', settled().p).p;
+
+  // Dacă s-a bătut palma, invitația originală rămâne în descriere, dar cu
+  // înțelegerea scrisă sub ea: altfel ar arăta o dată care nu mai e adevărată.
+  const body = agreed
+    ? `${buildInvite()}\n\nNe-am înțeles până la urmă: ${where}, ${relDate(agreed.d)}${agreed.t ? `, pe la ${agreed.t}` : ''}.`
+    : buildInvite();
 
   return [
     'BEGIN:VCALENDAR',
@@ -445,13 +462,13 @@ function buildIcs() {
     'PRODID:-//Hai sa ne vedem//RO',
     'CALSCALE:GREGORIAN',
     'BEGIN:VEVENT',
-    `UID:${state.d}-${(state.t || '19:00').replace(':', '')}-${state.a}@hai-sa-ne-vedem`,
+    `UID:${settled().d}-${(settled().t || '19:00').replace(':', '')}-${state.a}@hai-sa-ne-vedem`,
     `DTSTAMP:${utc(new Date())}`,
     `DTSTART:${local(d)}`,
     `DTEND:${local(end)}`,
     fold(`SUMMARY:${esc(summary)}`),
-    fold(`LOCATION:${esc(opt('p', state.p).p)}`),
-    fold(`DESCRIPTION:${esc(buildInvite())}`),
+    fold(`LOCATION:${esc(where)}`),
+    fold(`DESCRIPTION:${esc(body)}`),
     'END:VEVENT',
     'END:VCALENDAR',
   ].join('\r\n');
@@ -932,6 +949,23 @@ function openReply(answer) {
   });
 }
 
+/**
+ * Ce pleacă structurat pe lângă textul răspunsului, la răspunsurile care chiar
+ * propun altceva. Fără el, expeditorul ar trebui să citească proza și să
+ * refacă invitația de mână.
+ *
+ * La „altă dată” nu se schimbă locul: ecranul nici nu-l întreabă, deci luăm
+ * locul din invitație, nu ce a rămas prin `reply.rp` de la altă apăsare.
+ */
+function counterOffer() {
+  if (reply.ra !== 'neg' && reply.ra !== 'late') return null;
+  return {
+    p: reply.ra === 'neg' ? reply.rp : state.p,
+    d: reply.rd,
+    t: reply.rt,
+  };
+}
+
 /* --- Butonul care se roagă de tine --- */
 
 let noTries = 0;
@@ -1037,7 +1071,7 @@ function initInvite() {
     const btn = e.currentTarget;
     btn.disabled = true;
     try {
-      await Cloud.reply(currentInviteId, STATUS_OF[reply.ra] || 'da', buildReply());
+      await Cloud.reply(currentInviteId, STATUS_OF[reply.ra] || 'da', buildReply(), counterOffer());
       $('answer-buttons').classList.add('hidden');
       $('reply-panel').classList.add('hidden');
       $('reply-actions').classList.add('hidden');
@@ -1058,19 +1092,108 @@ function initAnswer() {
   $('answer-eyebrow').textContent = eyebrow;
   $('answer-title').textContent = reply.rn.trim() ? `${reply.rn.trim()} ${named}` : plain;
   $('answer-text').textContent = `${buildReply()}\n\nla invitația ta:\n${buildInvite()}`;
-
-  // Dacă a zis da, are sens să pui întâlnirea în calendar.
-  const cal = $('answer-cal-btn');
-  cal.classList.toggle('hidden', !(reply.ra === 'yes' && eventDate()));
+  renderAnswerCal();
 
   // Ecranul se poate deschide de mai multe ori, din listă, așa că legăm o dată.
   if (!initAnswer.wired) {
     initAnswer.wired = true;
-    cal.addEventListener('click', () => { buzz(); downloadIcs(); });
+    $('answer-cal-btn').addEventListener('click', () => { buzz(); downloadIcs(); });
     $('new-btn').addEventListener('click', goCompose);
+    $('accept-btn').addEventListener('click', acceptCounter);
   }
 
   if (reply.ra === 'yes') setTimeout(confetti, 320);
+}
+
+/** În calendar se pune ce e sigur: un „da”, sau o palmă bătută. */
+function renderAnswerCal() {
+  const worth = (reply.ra === 'yes' || agreed) && eventDate();
+  $('answer-cal-btn').classList.toggle('hidden', !worth);
+}
+
+/* ---- Contrapropunerea, văzută de expeditor ---- */
+
+/* Invitația al cărei accept îl așteptăm. Ținută aici, nu în `dataset`, ca să
+   nu punem un document întreg într-un atribut de HTML. */
+let pendingCounter = null;
+
+/** Ce s-a mutat față de invitația trimisă, rând cu rând. */
+function counterRows(c) {
+  return [
+    { what: 'Unde', from: opt('p', state.p).l, to: opt('p', c.p).l },
+    { what: 'Când', from: relDate(state.d),    to: relDate(c.d) },
+    { what: 'Ora',  from: state.t || '—',      to: c.t || '—' },
+  ].map(r => ({ ...r, changed: r.from !== r.to }));
+}
+
+function renderCounter(d) {
+  const card = $('counter-card');
+  const counter = d.reply && d.reply.counter;
+  pendingCounter = null;
+
+  // Invitațiile de dinainte de 0.2 n-au contrapropunere structurată: la ele
+  // rămâne doar textul, ca până acum.
+  if (!counter) { card.classList.add('hidden'); return; }
+  card.classList.remove('hidden');
+
+  const done = !!d.deal;
+  const who = (d.toName || '').trim().split(' ')[0];
+  $('counter-label').textContent = done
+    ? '🤝 ați bătut palma'
+    : `ce propune ${who || 'el'} în schimb`;
+
+  const list = $('counter-list');
+  list.textContent = '';
+  for (const r of counterRows(done ? d.deal : counter)) {
+    const li = document.createElement('li');
+    li.className = r.changed ? 'counter-row is-new' : 'counter-row';
+
+    const what = document.createElement('span');
+    what.className = 'counter-what';
+    what.textContent = r.what;
+
+    const val = document.createElement('span');
+    val.className = 'counter-val';
+    if (r.changed) {
+      const old = document.createElement('s');
+      old.textContent = r.from;
+      val.append(old, ' ', r.to);
+    } else {
+      val.textContent = r.to;
+    }
+
+    li.append(what, val);
+    list.append(li);
+  }
+
+  $('accept-btn').classList.toggle('hidden', done);
+  $('counter-note').textContent = done
+    ? 'Asta rămâne. Invitația ta a plecat cum a plecat, nimeni n-a rescris-o.'
+    : 'Un tap și rămâne cum zice el. Invitația ta rămâne neatinsă.';
+
+  if (!done) pendingCounter = d;
+}
+
+async function acceptCounter(e) {
+  const d = pendingCounter;
+  if (!d) return;
+  const btn = e.currentTarget;
+  btn.disabled = true;
+  buzz(24);
+  try {
+    await Cloud.acceptCounter(d.id, d.reply.counter);
+    // Nu mai așteptăm turul prin bază: ce am scris, aia s-a scris.
+    d.deal = { ...d.reply.counter };
+    agreed = { ...d.reply.counter };
+    renderCounter(d);
+    renderAnswerCal();
+    toast('Bate palma 🤝');
+    confetti();
+  } catch (err) {
+    toast(cloudErr(err));
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 /* --------------------------------------------------------- 9. CONFETTI */
@@ -1429,6 +1552,9 @@ function applyPayload(p) {
   KEYS.forEach(k => { if (typeof p[k] === 'string') state[k] = p[k]; });
 }
 
+/** Înțelegerea, într-un rând: „în parc, sâmbătă 8 august, pe la 20:00”. */
+const dealLine = (x) => `${opt('p', x.p).p}, ${relDate(x.d)}${x.t ? `, pe la ${x.t}` : ''}`;
+
 /** Un rând scurt pentru lista de invitații. */
 function shortLine(p) {
   const at = p.t ? ` la ${p.t}` : '';
@@ -1565,11 +1691,14 @@ function renderInbox() {
 
     const what = document.createElement('span');
     what.className = 'inbox-what';
-    what.textContent = shortLine(d.payload || {});
+    // Dacă s-a bătut palma, rândul arată înțelegerea, nu ce scria la plecare.
+    what.textContent = d.deal
+      ? `${opt('a', (d.payload || {}).a).e} ${dealLine(d.deal)}`
+      : shortLine(d.payload || {});
 
     const status = document.createElement('span');
-    status.className = `inbox-status st-${d.status}`;
-    status.textContent = STATUS_LABEL[d.status] || d.status;
+    status.className = d.deal ? 'inbox-status st-da' : `inbox-status st-${d.status}`;
+    status.textContent = d.deal ? '🤝 ați bătut palma' : (STATUS_LABEL[d.status] || d.status);
 
     card.append(who, what, status);
     card.addEventListener('click', () => {
@@ -1598,6 +1727,7 @@ async function openInvite(id) {
 
   currentInviteId = id;
   applyPayload(d.payload);
+  agreed = d.deal ? { p: d.deal.p, d: d.deal.d, t: d.deal.t } : null;
   initInvite();
 
   const mine = d.fromUid === Cloud.user.uid;
@@ -1611,7 +1741,10 @@ async function openInvite(id) {
   $('reply-panel').classList.add('hidden');
   $('reply-actions').classList.add('hidden');
 
-  if (mine) {
+  if (agreed) {
+    // Palma bătută bate orice alt status: e singurul lucru care mai contează.
+    setInviteState(`🤝 V-ați înțeles: ${dealLine(agreed)}`);
+  } else if (mine) {
     setInviteState(d.status === 'trimisa'
       ? 'E invitația ta. ' + STATUS_LABEL.trimisa
       : `E invitația ta. ${STATUS_LABEL[d.status]}`);
@@ -1634,6 +1767,7 @@ async function openInvite(id) {
 /** Înapoi la compozitor: invitația citită nu are ce căuta în ce compui tu. */
 function goCompose() {
   history.replaceState(null, '', location.pathname);
+  agreed = null;              // înțelegerea era a invitației citite, nu a ta
   Object.assign(state, DEFAULTS, { d: isoOffset(1) });
   recall();                    // ce compuneai tu ultima dată, dacă exista ceva
   state.s = myName;
@@ -1649,12 +1783,14 @@ function goCompose() {
 
 function showAnswer(d) {
   applyPayload(d.payload);
+  agreed = d.deal ? { p: d.deal.p, d: d.deal.d, t: d.deal.t } : null;
   reply.ra = ANSWER_OF[d.status] || 'yes';
   reply.rn = d.toName || '';
   initAnswer();
   // Textul răspunsului îl luăm așa cum l-a scris el, din bază.
   const note = (d.reply && d.reply.note) || STATUS_LABEL[d.status];
   $('answer-text').textContent = `${note}\n\nla invitația ta:\n${buildInvite()}`;
+  renderCounter(d);
   show('view-answer');
 }
 

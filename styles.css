@@ -245,6 +245,61 @@ body {
   color: var(--text-soft);
 }
 
+/* --- Contrapropunerea: ce s-a mutat, pe rânduri --- */
+/* Tăiat + nou pe același rând, ca diferența să se vadă fără să compari două
+   ecrane. Ce n-a mișcat rămâne acolo, scris palid: e o înțelegere întreagă,
+   nu doar lista modificărilor. */
+.counter-card { text-align: left; }
+
+.counter-label {
+  margin: 0 0 .7rem;
+  font-size: .78rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.counter-list {
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.counter-row {
+  display: flex;
+  gap: .8rem;
+  align-items: baseline;
+  padding: .5rem 0;
+  border-bottom: 1px solid var(--card-border);
+}
+.counter-row:last-child { border-bottom: 0; }
+
+.counter-what {
+  flex: 0 0 3.4rem;
+  font-size: .78rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+.counter-val { font-size: 1rem; }
+.counter-row.is-new .counter-val { font-weight: 700; color: var(--accent); }
+.counter-row:not(.is-new) .counter-val { color: var(--text-soft); }
+.counter-val s {
+  margin-right: .3rem;
+  font-weight: 400;
+  color: var(--text-soft);
+  opacity: .75;
+}
+
+.counter-note {
+  margin: .8rem 0 0;
+  font-size: .84rem;
+  line-height: 1.5;
+  color: var(--text-soft);
+}
+
 /* --- Hero --- */
 .hero {
   text-align: center;

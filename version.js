@@ -9,4 +9,4 @@
  *
  * Ce s-a schimbat la fiecare număr scrie în CHANGELOG.md.
  */
-self.APP_VERSION = '0.1';
+self.APP_VERSION = '0.2';

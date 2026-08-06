@@ -109,7 +109,7 @@ un bug.
 Ordonat după cât aduce față de cât costă. Ce e bifat a plecat deja.
 
 - [x] **0.1** — numere de versiune, ca fiecare pas să aibă un nume.
-- [ ] **0.2 — contrapropunerea devine reală.** Ce alege invitatul (loc, zi, oră)
+- [x] **0.2 — contrapropunerea devine reală.** Ce alege invitatul (loc, zi, oră)
       pleacă structurat, nu doar în text; expeditorul vede exact ce s-a schimbat
       și acceptă cu un buton. Închide gaura #2.
 - [ ] **0.3 — linkul care arată bine + ce urmează.** Etichete `og:`, plus un
