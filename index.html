@@ -6,6 +6,25 @@
   <meta name="theme-color" content="#0b1026" />
   <meta name="description" content="Fă o invitație frumoasă în 5 tap-uri și trimite-o. Rapid, simplu, cu zâmbet inclus." />
   <title>Hai să ne vedem 🌙</title>
+  <!-- Cum arată linkul când ajunge în WhatsApp, Messenger sau iMessage.
+       Fără astea, în conversație apare un dreptunghi gol cu un URL în el.
+       Cardul se regenerează cu `node tools/make-social-card.js`. -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Hai să ne vedem" />
+  <meta property="og:locale" content="ro_RO" />
+  <meta property="og:url" content="https://daniel9502.github.io/AppD/" />
+  <meta property="og:title" content="Hai să ne vedem 🌙" />
+  <meta property="og:description" content="Te-a invitat cineva undeva. Deschide și răspunde cu un buton: DA, hai să negociem, altă dată." />
+  <meta property="og:image" content="https://daniel9502.github.io/AppD/social-card.png" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="„Hai să ne vedem”, scris pe un cer înstelat, cu o lună în colț." />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Hai să ne vedem 🌙" />
+  <meta name="twitter:description" content="Te-a invitat cineva undeva. Deschide și răspunde cu un buton." />
+  <meta name="twitter:image" content="https://daniel9502.github.io/AppD/social-card.png" />
+
   <link rel="stylesheet" href="styles.css" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌙</text></svg>" />
@@ -26,6 +45,7 @@
           aria-label="Contul tău" aria-haspopup="menu" aria-expanded="false">
     <img id="account-photo" alt="" referrerpolicy="no-referrer" />
     <span id="account-initial"></span>
+    <span id="account-badge" class="account-badge hidden" aria-hidden="true"></span>
   </button>
 
   <div id="account-menu" class="account-menu hidden" role="menu">
@@ -75,6 +95,10 @@
       <header class="hero hero-tight">
         <p class="eyebrow">📬 invitațiile tale</p>
       </header>
+
+      <!-- Ce s-a bătut în cuie și încă n-a trecut. Stă deasupra listelor,
+           fiindcă e singurul lucru de aici pentru care mai ai ceva de făcut. -->
+      <div id="upcoming" class="upcoming hidden"></div>
 
       <div class="seg" role="tablist">
         <button class="seg-btn is-on" type="button" role="tab" data-tab="got">Primite</button>

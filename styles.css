@@ -113,7 +113,6 @@ body {
   width: 44px;
   height: 44px;
   padding: 0;
-  overflow: hidden;
   display: grid;
   place-items: center;
   font-size: 1.05rem;
@@ -128,7 +127,33 @@ body {
   transition: transform .25s ease;
 }
 .account-btn:active { transform: scale(.88); }
-.account-btn img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* Poza se rotunjește singură, ca butonul să nu mai taie ce iese din el:
+   bulina de noutăți stă dinadins peste margine. */
+.account-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: 50%;
+}
+
+.account-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 5px;
+  display: grid;
+  place-items: center;
+  font-size: .68rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--accent-ink);
+  background: var(--accent);
+  border: 2px solid var(--bg);
+  border-radius: 999px;
+}
 
 .account-menu {
   position: fixed;
@@ -244,6 +269,41 @@ body {
   font-size: .92rem;
   color: var(--text-soft);
 }
+
+/* --- Ce urmează --- */
+/* Ceasul primul, activitatea a doua: când te uiți aici, întrebarea e „cât mai
+   e”, nu „ce era”. */
+.upcoming { margin: 0 0 1.1rem; }
+
+.upcoming-title {
+  margin: 0 0 .5rem;
+  font-size: .78rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.upcoming-item {
+  display: flex;
+  flex-direction: column;
+  gap: .2rem;
+  width: 100%;
+  margin-bottom: .5rem;
+  padding: .75rem 1rem;
+  font: inherit;
+  text-align: left;
+  color: var(--text);
+  border: 1px solid var(--accent-soft);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  cursor: pointer;
+  transition: transform .18s ease;
+}
+.upcoming-item:active { transform: scale(.985); }
+.upcoming-when { font-size: .95rem; font-weight: 700; color: var(--accent); }
+.upcoming-what { font-size: .88rem; color: var(--text-soft); }
 
 /* --- Contrapropunerea: ce s-a mutat, pe rânduri --- */
 /* Tăiat + nou pe același rând, ca diferența să se vadă fără să compari două

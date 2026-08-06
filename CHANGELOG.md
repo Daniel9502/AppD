@@ -7,6 +7,28 @@ singură la toată lumea.
 
 De ce s-a ales fiecare pas scrie în [RESEARCH.md](RESEARCH.md).
 
+## 0.3 — linkul arată a ceva, și nu mai uiți de întâlnire
+
+**Cardul din conversație.** Până acum, linkul trimis pe WhatsApp apărea ca un
+dreptunghi gol cu un URL în el. Acum are titlu, descriere și o imagine de
+1200×630: cer înstelat, lună în colț, „HAI SĂ NE VEDEM” scris mare.
+
+Imaginea e desenată de noi, cu `node tools/make-social-card.js`, fără nicio
+dependință și fără font: literele sunt segmente de dreaptă, iar cerul e cel din
+aplicație. Un font ar fi fost o dependință de câteva sute de kilobytes pentru
+trei cuvinte.
+
+**🤝 Urmează.** În capul listei de invitații apar acum întâlnirile bătute în
+cuie care n-au trecut încă — trimise și primite laolaltă, cea mai apropiată
+prima, cu ceasul care merge singur: *„⏳ Mâine, la 20:00 · 🍺 O bere pe terasă,
+cu Bogdan”*. Trei, nu mai multe: e un memento, nu o agendă.
+
+**Bulina.** Pe poza de profil apare un număr cu câte lucruri te așteaptă:
+invitații primite fără răspuns și răspunsuri necitite. Ce e „nou” ține minte și
+statusul, nu doar invitația, ca bulina să reapară când cineva răspunde la ceva
+ce văzuseși deja. Numărul intră și în titlul paginii, `(2) Hai să ne vedem 🌙`,
+pentru cine ține aplicația într-un tab printre douăzeci.
+
 ## 0.2 — „hai să negociem” chiar negociază
 
 Până acum butonul exista, ecranul de contrapropunere exista, dar tot ce ajungea

@@ -54,6 +54,15 @@ După aceea nimeni altcineva n-o mai poate vedea sau atinge.
   trecută.”*). Nu întreabă nimeni pe nimeni cu cine se vede: alegerea de la
   *Ce facem?* spune destul, iar butoanele de „ponturi pentru” se ascund, fiindcă
   la un meci nu contează dacă ești băiat sau fată, contează să ai adidașii.
+- **Linkul arată a ceva.** În WhatsApp sau Messenger apare cu titlu, descriere
+  și un card de 1200×630: cer înstelat, lună în colț, numele scris mare. Cardul
+  e desenat fără nicio dependință și fără font — literele sunt segmente de
+  dreaptă — și se regenerează cu `node tools/make-social-card.js`.
+- **🤝 Urmează.** În capul listei stau întâlnirile bătute în cuie care n-au
+  trecut încă, trimise și primite laolaltă, cu ceasul care merge singur. Trei,
+  nu mai multe: e un memento, nu o agendă.
+- **Bulină pe poza ta** cu câte lucruri te așteaptă: invitații fără răspuns și
+  răspunsuri necitite. Numărul intră și în titlul paginii.
 - **Cer înstelat cu licurici** noaptea: canvas, licurici care pâlpâie, stele care clipesc și câte o stea căzătoare din când în când. Ziua: fundal cald, fără animații.
 - **Temă automată** după oră (noapte între 19:00 și 07:00), cu buton de comutare care se ține minte.
 - **Ponturi** diferite pentru băieți și fete; atinge cardul pentru altul. Cele trei
@@ -78,6 +87,7 @@ După aceea nimeni altcineva n-o mai poate vedea sau atinge.
 | `firebase-config.js` | cheile proiectului `app-d-24f03`, cu pașii din consolă înăuntru |
 | `version.js` | numărul de versiune, citit și de pagină, și de service worker |
 | `firestore.rules` | cine ce poate citi și scrie; 74 de teste în `tools/rules-test/` |
+| `social-card.png` | cardul din previzualizarea linkului; `tools/make-social-card.js` îl desenează |
 | `CHANGELOG.md` | ce s-a schimbat la fiecare versiune |
 | `RESEARCH.md` | ce fac aplicațiile concurente și ce luăm de la ele |
 | `graph/` | exploratorul de graf (vezi mai jos) |

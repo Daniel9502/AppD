@@ -112,9 +112,10 @@ Ordonat după cât aduce față de cât costă. Ce e bifat a plecat deja.
 - [x] **0.2 — contrapropunerea devine reală.** Ce alege invitatul (loc, zi, oră)
       pleacă structurat, nu doar în text; expeditorul vede exact ce s-a schimbat
       și acceptă cu un buton. Închide gaura #2.
-- [ ] **0.3 — linkul care arată bine + ce urmează.** Etichete `og:`, plus un
-      capăt de listă cu întâlnirile confirmate și cât mai e până la ele.
-      Închide gaura #3 și aduce reminder-ul de la Evite/Punchbowl.
+- [x] **0.3 — linkul care arată bine + ce urmează.** Etichete `og:` cu un card
+      desenat de noi, plus un capăt de listă cu întâlnirile confirmate și cât
+      mai e până la ele, și o bulină cu ce te așteaptă. Închide gaura #3 și
+      aduce reminder-ul de la Evite/Punchbowl.
 - [ ] **0.4 — „a deschis-o”.** Știm deja când cineva revendică invitația
       (`toUid`); doar n-o arătăm. E funcția premium de la Paperless Post,
       gratis, din date pe care le avem deja.

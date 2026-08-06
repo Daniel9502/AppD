@@ -397,8 +397,12 @@ function eventDate() {
   return isNaN(d) ? null : d;
 }
 
-function countdownText() {
-  const d = eventDate();
+/**
+ * Cât mai e până la întâlnire. Fără argumente vorbește despre invitația de pe
+ * ecran; cu ele, despre oricare alta — lista „urmează” are mai multe deodată.
+ */
+function countdownText(at, hhmm) {
+  const d = at || eventDate();
   if (!d) return '';
   const now = new Date();
   const ms = d - now;
@@ -416,7 +420,8 @@ function countdownText() {
   const days = Math.round((midnight(d) - midnight(now)) / 86400000);
 
   if (days === 0) return `⏳ Azi, peste ${ro(Math.round(ms / 3600e3), 'oră', 'ore')}`;
-  if (days === 1) return `⏳ Mâine${settled().t ? `, la ${settled().t}` : ''}`;
+  const t = hhmm === undefined ? settled().t : hhmm;
+  if (days === 1) return `⏳ Mâine${t ? `, la ${t}` : ''}`;
   return `⏳ Mai sunt ${ro(days, 'zi', 'zile')}`;
 }
 
@@ -1185,6 +1190,7 @@ async function acceptCounter(e) {
     // Nu mai așteptăm turul prin bază: ce am scris, aia s-a scris.
     d.deal = { ...d.reply.counter };
     agreed = { ...d.reply.counter };
+    markSeen(d);              // înțelegerea e a ta, n-ai ce să afli despre ea
     renderCounter(d);
     renderAnswerCal();
     toast('Bate palma 🤝');
@@ -1653,17 +1659,133 @@ function initInbox() {
   });
 
   $('new-invite-btn').addEventListener('click', goCompose);
+
+  // Ceasurile din „urmează” trebuie să se miște singure: „peste 3 ore” care
+  // rămâne „peste 3 ore” toată seara e mai rău decât nimic.
+  setInterval(() => {
+    if (!$('view-inbox').classList.contains('hidden')) renderUpcoming();
+  }, 30000);
 }
 
 function startInbox() {
   if (stopInboxWatch) stopInboxWatch();
   stopInboxWatch = Cloud.watchMine(data => {
     inboxData = data;
+    renderNews();
     if (!$('view-inbox').classList.contains('hidden')) renderInbox();
   });
 }
 
+/* ------------------------------------------------------ ce urmează */
+
+/** Locul, ziua și ora unei invitații, dacă s-a ajuns la o înțelegere. */
+function settledOf(d) {
+  if (d.deal) return d.deal;
+  return d.status === 'da' ? (d.payload || {}) : null;
+}
+
+/**
+ * Întâlnirile bătute în cuie care încă n-au trecut, cea mai apropiată prima.
+ * Trimise și primite laolaltă: când vine sâmbătă, nu mai contează cine a
+ * întrebat. Ținem trei: e un memento, nu o agendă.
+ */
+function upcomingList() {
+  const now = Date.now();
+  return [...inboxData.sent, ...inboxData.got]
+    .map(d => {
+      const w = settledOf(d);
+      if (!w || !w.d) return null;
+      const at = new Date(`${w.d}T${w.t || '19:00'}`);
+      // Două ore de grație: la 20:15 încă vrei să vezi întâlnirea de la 20:00.
+      if (isNaN(at) || at.getTime() < now - 2 * 3600e3) return null;
+      return { d, at, w };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.at - b.at)
+    .slice(0, 3);
+}
+
+function renderUpcoming() {
+  const host = $('upcoming');
+  host.textContent = '';
+
+  const items = upcomingList();
+  host.classList.toggle('hidden', !items.length);
+  if (!items.length) return;
+
+  const title = document.createElement('p');
+  title.className = 'upcoming-title';
+  title.textContent = '🤝 urmează';
+  host.append(title);
+
+  const me = Cloud.user ? Cloud.user.uid : '';
+
+  for (const it of items) {
+    const card = document.createElement('button');
+    card.className = 'upcoming-item';
+    card.type = 'button';
+
+    const when = document.createElement('span');
+    when.className = 'upcoming-when';
+    when.textContent = countdownText(it.at, it.w.t) || '🎉 Chiar acum!';
+
+    const what = document.createElement('span');
+    what.className = 'upcoming-what';
+    const a = opt('a', (it.d.payload || {}).a);
+    const other = (it.d.fromUid === me ? it.d.toName : it.d.fromName) || '';
+    const withWho = other ? `, cu ${other.trim().split(' ')[0]}` : '';
+    what.textContent = `${a.e} ${a.l} ${opt('p', it.w.p).p}${withWho}`;
+
+    card.append(when, what);
+    card.addEventListener('click', () => openInvite(it.d.id));
+    host.append(card);
+  }
+}
+
+/* --------------------------------------------------- bulina de noutăți */
+
+/* Ce e „nou” depinde de status, nu doar de invitație: dacă cineva răspunde la
+   una pe care ai văzut-o deja, bulina trebuie să reapară. De aia semnul ține
+   minte și statusul, nu numai id-ul. */
+const SEEN_KEY = 'vazute';
+const stampOf = d => `${d.id}:${d.status}${d.deal ? ':ok' : ''}`;
+
+function seenSet() {
+  try { return new Set(JSON.parse(localStorage.getItem(SEEN_KEY) || '[]')); } catch (_) { return new Set(); }
+}
+
+function markSeen(d) {
+  const s = seenSet();
+  s.add(stampOf(d));
+  // Ultimele 200: destul cât să nu uite nimic recent, prea puțin cât să conteze.
+  try { localStorage.setItem(SEEN_KEY, JSON.stringify([...s].slice(-200))); } catch (_) { /* modul privat */ }
+  renderNews();
+}
+
+/** Câte lucruri te așteaptă: invitații fără răspuns și răspunsuri necitite. */
+function newsCount() {
+  const seen = seenSet();
+  const nou = d => !seen.has(stampOf(d));
+  return inboxData.got.filter(d => d.status === 'trimisa' && nou(d)).length
+    + inboxData.sent.filter(d => d.status !== 'trimisa' && nou(d)).length;
+}
+
+function renderNews() {
+  const n = newsCount();
+  const badge = $('account-badge');
+  badge.textContent = n > 9 ? '9+' : String(n);
+  badge.classList.toggle('hidden', n === 0);
+  $('account-btn').setAttribute('aria-label', n
+    ? `Contul tău — ${ro(n, 'lucru nou', 'lucruri noi')}`
+    : 'Contul tău');
+  // Pe desktop aplicația stă într-un tab printre douăzeci: numărul din titlu
+  // e singurul lucru care se vede fără să dai clic pe el.
+  document.title = n ? `(${n}) Hai să ne vedem 🌙` : 'Hai să ne vedem 🌙';
+}
+
 function renderInbox() {
+  renderUpcoming();
+
   const list = $('inbox-list');
   list.textContent = '';
 
@@ -1726,6 +1848,7 @@ async function openInvite(id) {
   }
 
   currentInviteId = id;
+  markSeen(d);
   applyPayload(d.payload);
   agreed = d.deal ? { p: d.deal.p, d: d.deal.d, t: d.deal.t } : null;
   initInvite();
@@ -1782,6 +1905,7 @@ function goCompose() {
 }
 
 function showAnswer(d) {
+  markSeen(d);
   applyPayload(d.payload);
   agreed = d.deal ? { p: d.deal.p, d: d.deal.d, t: d.deal.t } : null;
   reply.ra = ANSWER_OF[d.status] || 'yes';
@@ -1861,6 +1985,8 @@ function initServiceWorker() {
 
     if (!user) {
       if (stopInboxWatch) { stopInboxWatch(); stopInboxWatch = null; }
+      inboxData = { sent: [], got: [] };
+      renderNews();
       show('view-auth');
       return;
     }
