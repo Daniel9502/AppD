@@ -1,0 +1,13 @@
+{
+  "name": "rules-test",
+  "private": true,
+  "type": "module",
+  "description": "Teste pentru regulile de securitate Firestore, rulate pe emulator.",
+  "scripts": {
+    "test": "firebase emulators:exec --only firestore,auth --project demo-hai-sa-ne-vedem \"node --test rules.test.mjs\""
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^4.0.1",
+    "firebase": "^11.0.0"
+  }
+}

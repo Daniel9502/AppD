@@ -1,5 +1,5 @@
 /* =========================================================================
-   Hai să ne vedem — invitații rapide, cu cer înstelat și licurici
+   Hai să ne vedem: invitații rapide, cu cer înstelat și licurici
    ========================================================================= */
 
 'use strict';
@@ -15,15 +15,18 @@ const OPTIONS = {
   a: [
     { id: 'plimbare',  e: '🚶', l: 'Plimbare',  p: 'o plimbare' },
     { id: 'cafea',     e: '☕', l: 'Cafea',     p: 'o cafea' },
+    { id: 'bere',      e: '🍺', l: 'O bere',    p: 'o bere' },
     { id: 'inghetata', e: '🍦', l: 'Înghețată', p: 'o înghețată' },
     { id: 'mancare',   e: '🍕', l: 'Mâncare',   p: 'ceva de mâncat' },
     { id: 'film',      e: '🎬', l: 'Film',      p: 'un film' },
+    { id: 'sport',     e: '🏀', l: 'Baschet',   p: 'un baschet' },
     { id: 'vorbit',    e: '💬', l: 'Vorbit',    p: 'o vorbă lungă' },
   ],
   p: [
     { id: 'parc',    e: '🌳', l: 'În parc',    p: 'în parc' },
     { id: 'terasa',  e: '☂️', l: 'Pe terasă',  p: 'pe o terasă' },
     { id: 'oras',    e: '🏙️', l: 'În oraș',    p: 'prin oraș' },
+    { id: 'teren',   e: '🏟️', l: 'La teren',   p: 'pe teren' },
     { id: 'lac',     e: '🌊', l: 'La lac',     p: 'la lac' },
     { id: 'undezici', e: '🤷', l: 'Unde zici tu', p: 'unde zici tu' },
   ],
@@ -39,6 +42,7 @@ const OPTIONS = {
   ],
   b: [
     { id: 'cafea',     e: '☕', l: 'Cafea',     p: 'o cafea' },
+    { id: 'bere',      e: '🍺', l: 'Bere',      p: 'o bere' },
     { id: 'suc',       e: '🧃', l: 'Suc',       p: 'un suc' },
     { id: 'apa',       e: '💧', l: 'Apă',       p: 'o apă' },
     { id: 'limonada',  e: '🍋', l: 'Limonadă',  p: 'o limonadă' },
@@ -46,7 +50,48 @@ const OPTIONS = {
   ],
 };
 
+/* Ieșirile „cu prietenii”. Nu întrebăm pe nimeni cu cine se vede: alegerea de
+   la „Ce facem?” spune destul. Bere sau baschet schimbă și rândul de inimă, și
+   ponturile, fără să apară vreun buton în plus pe ecran. */
+const AMICALE = new Set(['bere', 'sport']);
+
 const HOURS = ['11:00', '17:00', '19:00', '21:00'];
+
+/* Rândul de inimă: de ce întrebi, nu ce faceți. Stă imediat sub invitație,
+   fiindcă acolo se citește, și e singurul loc din text unde vorbești la
+   persoana întâi. Restul sunt detalii; ăsta e mesajul.
+
+   Sunt scrise să meargă și pentru o prietenă, și pentru cineva care îți place:
+   spun că ți-e greu să întrebi și că vrei să vină, fără să promită nimic. */
+const INIMA = [
+  'Dacă te-ai întrebat vreodată dacă mă gândesc la tine: uite răspunsul.',
+  'Am șters mesajul ăsta de trei ori. A patra oară l-am trimis.',
+  'Nu știu să fac asta elegant, așa că o spun simplu: mi-ar plăcea să te văd.',
+  'Mi-e puțin frică să întreb. Mi-ar fi mai frică să n-o fac.',
+  'Am tot amânat mesajul ăsta. Gata cu amânatul.',
+  'Zi da și mi-ai făcut săptămâna. Zi nu și tot mă bucur că am întrebat.',
+  'Ție poate îți sună banal. Mie mi-a luat trei zile să întreb.',
+  'Nu-ți cer mult: o oră și puțină atenție. Restul aranjez eu.',
+  'Mi-ar plăcea o seară în care să nu ne grăbim nicăieri.',
+  // Ultima iese pe formularul neatins, adică exact la cine doar apasă
+  // „Trimite”. De aia e cea mai blândă din listă și stă aici, la coadă.
+  'Nu prea am curaj să întreb, dar chiar vreau să te văd.',
+];
+
+/* Aceeași idee, dar pentru bere și baschet: tot despre „mi-ar plăcea să vii”,
+   doar că fără nimic romantic în ea. Dacă ghicim greșit ocazia, cel mai rău
+   caz e un mesaj prietenos, nu unul stânjenitor. */
+const INIMA_AMICI = [
+  'Ne-am văzut ultima oară acum prea mult. Hai să reparăm asta.',
+  'Fără ocazie, fără motiv. Doar că merită.',
+  'Am ajuns să ne vedem doar prin story-uri. Hai să schimbăm asta.',
+  'Zi da, că altfel stau acasă și mă uit iar la același serial.',
+  'Am nevoie de o oră în care să râd. Te-am ales pe tine.',
+  'Hai, că avem de povestit vreo trei luni.',
+  'Nu-mi trebuie decât o oră și un motiv bun. Motivul ești tu.',
+  'Dacă zici nu, mă descurc. Dar ar fi mult mai bine cu tine.',
+  'Mi-e dor să ieșim ca pe vremuri. Hai să ne vedem.',
+];
 
 const JOKES = [
   'Dacă zici nu, mă prefac că n-am întrebat. 🙈',
@@ -60,6 +105,15 @@ const JOKES = [
   'Anulez orice altceva aveam. Oricum n-aveam nimic.',
   'Butonul verde e mai mare decât celelalte. Nu e o coincidență. 👀',
   'Dacă e să plouă, ne mutăm undeva unde nu plouă. Sunt strateg.',
+];
+
+/* Butonul de „nu” nu cedează din prima: se roagă de tine. Ultima rugăminte
+   îți spune limpede ce să faci, ca gluma să rămână glumă: dacă chiar nu poți
+   veni, ajungi la „nu” din trei atingeri, nu din nouăsprezece. */
+const NO_PLEAS = [
+  '🥺 pleaseeee?',
+  '😢 nici măcar o oră?',
+  '💔 bine. mai apasă o dată și te cred',
 ];
 
 const REPLY_CLOSERS = [
@@ -112,6 +166,10 @@ const PRESETS = [
     v: { a: 'inghetata', p: 'oras', t: '19:00', m: 'jos', w: 'lejer', b: 'limonada', day: 0 } },
   { e: '🌆', t: 'Seară frumoasă', sub: 'sâmbătă, elegant',
     v: { a: 'mancare', p: 'terasa', t: '21:00', m: 'masina', w: 'elegant', b: 'vin', day: 'sat' } },
+  { e: '🍺', t: 'O bere',        sub: 'azi, în oraș',
+    v: { a: 'bere', p: 'oras', t: '19:00', m: 'acolo', w: 'lejer', b: 'bere', day: 0 } },
+  { e: '🏀', t: 'Baschet',       sub: 'mâine, la teren',
+    v: { a: 'sport', p: 'teren', t: '17:00', m: 'acolo', w: 'lejer', b: 'apa', day: 1 } },
 ];
 
 const SURPRISE_TOASTS = [
@@ -122,9 +180,30 @@ const SURPRISE_TOASTS = [
   'Combinația asta n-a dat greș niciodată*  (*niciodată testată)',
 ];
 
+/* Ponturi pentru bere și baschet: se aleg după ce faceți, nu după cine ești.
+   La un meci nu contează dacă ești băiat sau fată, contează să ai adidașii. */
+const TIPS_AMICI = {
+  bere: [
+    'Fă tu cinste cu prima rundă. Se ține minte. 🍻',
+    'Vino cu o poveste bună. Restul se rezolvă singur.',
+    'Stabiliți din start cine conduce înapoi. E mai ușor acum decât după. 🚗',
+    'Telefonul în buzunar. O oră fără el n-a omorât pe nimeni. 📵',
+    'Nu începe cu „hai doar una”. Nu te crede nimeni. 😄',
+    'Întreabă-l ce mai face și chiar ascultă răspunsul. 👂',
+  ],
+  sport: [
+    'Ia mingea ta. A lui e dezumflată din vara trecută. 🏀',
+    'Adidașii buni, nu ăia „de oraș”. Genunchii îți mulțumesc. 👟',
+    'Adu apă. Sună plictisitor până în minutul zece. 💧',
+    'Un tricou de schimb în rucsac. Crezi că nu-ți trebuie. Îți trebuie. 👕',
+    'Încălzește-te. Ai trecut de vârsta la care mergea și fără. 🤸',
+    'Ține scorul cu voce tare, altfel câștigă amândoi. 😅',
+  ],
+};
+
 /** Ponturile pentru invitat: complementare cu ale expeditorului. */
 function tipPoolFor(who) {
-  return TIPS[who] || TIPS.x;
+  return TIPS_AMICI[state.a] || TIPS[who] || TIPS.x;
 }
 function otherSide(who) {
   return who === 'b' ? 'f' : who === 'f' ? 'b' : 'x';
@@ -132,8 +211,12 @@ function otherSide(who) {
 
 /* ------------------------------------------------------- 2. STARE ȘI URL */
 
-const KEYS = ['s', 'g', 'a', 'p', 'd', 't', 'm', 'w', 'b', 'n'];
-const RKEYS = ['ra', 'rn', 'rp', 'rd', 'rt', 'rm'];
+/* Cheile din care se scrie invitația. `x` e textul rescris de expeditor: dacă
+   are ceva în el, el pleacă mai departe, iar restul cheilor rămân doar pentru
+   dată, ceas și calendar. Seed-ul glumelor se calculează fără `x`, ca textul
+   generat să nu sară în altul când te apuci să-l editezi. */
+const SEED_KEYS = ['s', 'g', 'a', 'p', 'd', 't', 'm', 'w', 'b', 'n'];
+const KEYS = [...SEED_KEYS, 'x'];
 
 function isoOffset(days) {
   const d = new Date();
@@ -151,10 +234,25 @@ function nextSaturday() {
 
 const state = {
   s: '', g: 'x', a: 'plimbare', p: 'parc', d: isoOffset(1), t: '19:00',
-  m: 'masina', w: 'lejer', b: 'cafea', n: '',
+  m: 'masina', w: 'lejer', b: 'cafea', n: '', x: '',
 };
 
-const reply = { ra: '', rn: '', rp: '', rd: '', rt: '', rm: '' };
+/* Citirea unei invitații primite scrie peste `state`, de aia ținem minte de
+   unde am plecat, ca întoarcerea la compozitor să nu-ți lase în formular
+   invitația altcuiva. */
+const DEFAULTS = { ...state };
+
+/* `rx` e răspunsul rescris de mână, la fel ca `x` la invitație. */
+const reply = { ra: '', rn: '', rp: '', rd: '', rt: '', rm: '', rx: '' };
+
+/* Numele tău vine din contul Google, nu-l mai cerem în formular. Îl ținem
+   separat de `state.s`, fiindcă acolo ajunge și numele altcuiva când citești
+   o invitație primită. */
+let myName = '';
+
+/* Invitația salvată în cloud pentru compoziția curentă. Se rupe la orice
+   schimbare, ca linkul trimis să spună mereu ce scrie pe ecran. */
+let draftId = '';
 
 function opt(group, id) {
   const list = OPTIONS[group];
@@ -165,10 +263,15 @@ function opt(group, id) {
 
 const STORE_KEY = 'ultima-invitatie';
 
+/* Mesajul (`n`) și textul rescris (`x`) se scriu de fiecare dată de la zero,
+   iar numele (`s`) vine din cont: n-are rost să le ținem minte. */
+const REMEMBER_KEYS = KEYS.filter(k => !['n', 's', 'x'].includes(k));
+
 function remember() {
+  draftId = '';   // s-a schimbat compoziția: linkul vechi nu mai e valabil
   try {
     const keep = {};
-    KEYS.forEach(k => { if (k !== 'n') keep[k] = state[k]; });
+    REMEMBER_KEYS.forEach(k => { keep[k] = state[k]; });
     localStorage.setItem(STORE_KEY, JSON.stringify(keep));
   } catch (_) { /* modul privat sau spațiu plin */ }
 }
@@ -177,18 +280,11 @@ function recall() {
   let saved;
   try { saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); } catch (_) { return; }
   if (!saved) return;
-  KEYS.forEach(k => { if (typeof saved[k] === 'string') state[k] = saved[k]; });
+  REMEMBER_KEYS.forEach(k => { if (typeof saved[k] === 'string') state[k] = saved[k]; });
   // O dată trecută n-are sens: o mutăm pe mâine.
   if (state.d && state.d < isoOffset(0)) state.d = isoOffset(1);
 }
 
-function buildUrl(extra) {
-  const params = new URLSearchParams();
-  KEYS.forEach(k => { if (state[k]) params.set(k, state[k]); });
-  if (extra) RKEYS.forEach(k => { if (extra[k]) params.set(k, extra[k]); });
-  const base = location.href.split('#')[0].split('?')[0];
-  return `${base}?${params.toString()}`;
-}
 
 /* ------------------------------------------------------------- 3. TEXTE */
 
@@ -212,24 +308,37 @@ function pick(pool, seedStr) {
   return pool[h % pool.length];
 }
 
+/** Textul care pleacă mai departe: al tău dacă l-ai rescris, altfel al nostru. */
 function buildInvite() {
+  return state.x.trim() || autoInvite();
+}
+
+function autoInvite() {
   const a = opt('a', state.a), p = opt('p', state.p);
   const who = state.s.trim() ? `${state.s.trim()} te invită la` : 'Te invit la';
   const when = relDate(state.d);
   const at = state.t ? `, pe la ${state.t}` : '';
 
+  const seed = SEED_KEYS.map(k => state[k]).join('|');
+
   const lines = [
     `${a.e} ${who} ${a.p} ${p.p} ${when}${at}.`,
+    pick(AMICALE.has(state.a) ? INIMA_AMICI : INIMA, `inima|${seed}`),
     opt('m', state.m).s,
     opt('w', state.w).s,
     `Se bea ${opt('b', state.b).p}. ${opt('b', state.b).e}`,
   ];
   if (state.n.trim()) lines.push(`„${state.n.trim()}”`);
-  lines.push(pick(JOKES, KEYS.map(k => state[k]).join('|')));
+  lines.push(pick(JOKES, seed));
   return lines.join('\n');
 }
 
+/** La fel ca la invitație: ce ai rescris tu bate ce am scris noi. */
 function buildReply() {
+  return reply.rx.trim() || autoReply();
+}
+
+function autoReply() {
   const name = reply.rn.trim();
   const me = name ? `${name}: ` : '';
   const lines = [];
@@ -487,10 +596,6 @@ async function shareOrCopy(text, url, okMsg) {
   toast(okMsg);
 }
 
-function whatsapp(text, url) {
-  window.open(`https://wa.me/?text=${encodeURIComponent(`${text}\n\n${url}`)}`, '_blank', 'noopener');
-}
-
 function downloadIcs() {
   const ics = buildIcs();
   if (!ics) { toast('Alege întâi o dată 🗓️'); return; }
@@ -505,9 +610,11 @@ function downloadIcs() {
   toast('Deschide fișierul ca să-l pui în calendar 📅');
 }
 
+const VIEWS = ['view-auth', 'view-compose', 'view-invite', 'view-answer', 'view-inbox'];
+
 function show(viewId) {
   const swap = () => {
-    ['view-compose', 'view-invite', 'view-answer'].forEach(id => {
+    VIEWS.forEach(id => {
       $(id).classList.toggle('hidden', id !== viewId);
     });
     window.scrollTo(0, 0);
@@ -520,12 +627,13 @@ function show(viewId) {
 /* ------------------------------------------------- 6. VIEW: COMPOZITOR */
 
 const composeGroups = [
-  { key: 'g', label: 'Eu sunt',     items: optItems('g') },
+  // „Eu sunt” lipsește dinadins: nu intră în invitație, schimbă doar ponturile,
+  // așa că butoanele lui stau în cardul de pont (vezi renderWho).
   { key: 'a', label: 'Ce facem?',   items: optItems('a') },
   { key: 'p', label: 'Unde?',       items: optItems('p') },
   { key: 'd', label: 'Când?',       items: dateItems(), custom: 'date', customLabel: 'Altă dată' },
   { key: 't', label: 'La ce oră?',  items: hourItems(), custom: 'time', customLabel: 'Altă oră' },
-  // Cele de mai jos sunt ascunse implicit — invitația merge și fără ele.
+  // Cele de mai jos sunt ascunse implicit: invitația merge și fără ele.
   { key: 'm', label: 'Cum ajungem?',items: optItems('m'), extra: true },
   { key: 'w', label: 'Ținuta',      items: optItems('w'), extra: true },
   { key: 'b', label: 'Ce bem?',     items: optItems('b'), extra: true },
@@ -534,7 +642,35 @@ const composeGroups = [
 const composeSyncs = [];
 let tipIndex = 0;
 
+/** Cele trei butoane mici din capul pontului: schimbă doar pontul. */
+function renderWho() {
+  const host = $('tip-who');
+  host.textContent = '';
+  OPTIONS.g.forEach(o => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'who';
+    b.textContent = o.e;
+    b.title = `Ponturi pentru: ${o.l}`;
+    b.setAttribute('aria-label', `Ponturi pentru: ${o.l}`);
+    b.setAttribute('aria-pressed', state.g === o.id ? 'true' : 'false');
+    b.addEventListener('click', () => {
+      state.g = o.id;
+      tipIndex = 0;
+      renderWho();
+      renderTip();
+      remember();
+      buzz();
+    });
+    host.append(b);
+  });
+}
+
 function renderTip() {
+  // La bere sau baschet pontul nu depinde de cine ești, deci butoanele alea
+  // n-ar face nimic dacă le-am lăsa la vedere.
+  $('tip-who').classList.toggle('hidden', AMICALE.has(state.a));
+
   const pool = tipPoolFor(state.g);
   const el = $('tip-text');
   el.textContent = pool[tipIndex % pool.length];
@@ -543,15 +679,76 @@ function renderTip() {
   el.style.animation = '';
 }
 
-function renderPreview() {
-  $('preview').textContent = buildInvite();
+/* ---- Rescrierea textului: aceeași mecanică la invitație și la răspuns ----
+   Textul rămâne al tău din clipa în care îl atingi. Chip-urile nu ți-l mai
+   suprascriu, ca să nu-ți pierzi ce ai scris dintr-o atingere greșită; „↺
+   textul automat” îl dă înapoi când vrei. */
+
+function autoGrow(ta) {
+  ta.style.height = 'auto';
+  ta.style.height = `${ta.scrollHeight}px`;
 }
 
-/** Pontul se schimbă doar când schimbi cine ești, nu la fiecare literă. */
+/**
+ * Leagă un card de previzualizare la un câmp de text.
+ * `read` întoarce textul curent, `write` îl pune în stare, `auto` îl șterge.
+ */
+function wireEditor({ view, edit, label, editBtn, resetBtn, read, write, isCustom, onChange }) {
+  const ta = $(edit);
+
+  const paint = () => {
+    const custom = isCustom();
+    $(view).textContent = read();
+    $(label).textContent = custom ? 'textul tău' : $(label).dataset.auto;
+    $(resetBtn).classList.toggle('hidden', !custom);
+  };
+
+  const open = (yes) => {
+    ta.classList.toggle('hidden', !yes);
+    $(view).classList.toggle('hidden', yes);
+    $(editBtn).textContent = yes ? '✔️ Gata' : '✏️ Schimbă textul';
+    if (yes) { ta.value = read(); autoGrow(ta); ta.focus(); }
+  };
+
+  $(label).dataset.auto = $(label).textContent;
+
+  $(editBtn).addEventListener('click', () => {
+    open(ta.classList.contains('hidden'));
+    buzz();
+  });
+
+  ta.addEventListener('input', () => {
+    write(ta.value);
+    autoGrow(ta);
+    paint();
+    onChange();
+  });
+
+  $(resetBtn).addEventListener('click', () => {
+    write('');
+    ta.value = read();
+    autoGrow(ta);
+    paint();
+    onChange();
+    buzz();
+  });
+
+  return { paint, close: () => open(false) };
+}
+
+let inviteEditor = null;
+let replyEditor = null;
+
+function renderPreview() {
+  if (inviteEditor) inviteEditor.paint();
+  else $('preview').textContent = buildInvite();
+}
+
+/** Ce faceți schimbă și tonul: la bere sau baschet, alt pont și alt rând de inimă. */
 function onComposeChange(key) {
   renderPreview();
   remember();
-  if (key === 'g') { tipIndex = 0; renderTip(); }
+  if (key === 'a') { tipIndex = 0; renderTip(); }
 }
 
 /** Dacă ora aleasă a trecut deja azi, mutăm întâlnirea pe mâine. */
@@ -566,10 +763,14 @@ function applyPreset(p) {
   ensureFuture();
   composeSyncs.forEach(fn => fn());
   renderPreview();
+  tipIndex = 0;
+  renderTip();
   remember();
   buzz(18);
   toast(`${p.e} Gata! Poți trimite.`);
-  $('send-btn').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  // Butonul de trimis e oricum sub degetul tău, așa că urcăm la text: să vezi
+  // ce s-a schimbat, nu unde să apeși.
+  $('preview').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 function renderPresets() {
@@ -597,6 +798,15 @@ function initCompose() {
   recall();
   renderPresets();
 
+  inviteEditor = wireEditor({
+    view: 'preview', edit: 'preview-edit', label: 'preview-label',
+    editBtn: 'edit-btn', resetBtn: 'reset-btn',
+    read: buildInvite,
+    write: (v) => { state.x = v; },
+    isCustom: () => !!state.x.trim(),
+    onChange: remember,
+  });
+
   const host = $('chip-groups');
   const extraHost = $('extra-groups');
   composeGroups.forEach(def => {
@@ -614,13 +824,6 @@ function initCompose() {
     tipIndex++;
     renderTip();
     buzz();
-  });
-
-  $('senderName').value = state.s;
-  $('senderName').addEventListener('input', e => {
-    state.s = e.target.value;
-    renderPreview();
-    remember();
   });
 
   $('note').addEventListener('input', e => {
@@ -648,21 +851,42 @@ function initCompose() {
     ensureFuture();
     composeSyncs.forEach(fn => fn());
     renderPreview();
+    tipIndex = 0;
+    renderTip();
     remember();
     buzz(18);
     toast(rnd(SURPRISE_TOASTS));
+    $('preview').scrollIntoView({ behavior: 'smooth', block: 'center' });
   });
 
-  $('send-btn').addEventListener('click', () => {
+  /* Trimiterea salvează invitația în cloud și împarte linkul ei. Cele trei
+     butoane folosesc aceeași invitație: se creează una singură, iar draftul
+     se rupe de fiecare dată când schimbi ceva în compozitor. */
+  const withUrl = async (btn, run) => {
+    btn.disabled = true;
+    try {
+      run(await ensureInvite());
+    } catch (err) {
+      toast(cloudErr(err));
+    } finally {
+      btn.disabled = false;
+    }
+  };
+
+  // Un singur buton mare: meniul de share al telefonului are deja WhatsApp,
+  // Messenger și SMS. Copierea linkului rămâne, dar discret, pentru desktop.
+  $('send-btn').addEventListener('click', (e) => {
     buzz();
-    shareOrCopy(buildInvite(), buildUrl(), 'Invitația e copiată, dă-i paste 💌');
+    withUrl(e.currentTarget, url =>
+      shareOrCopy(buildInvite(), url, 'Invitația e copiată, dă-i paste 💌'));
   });
-  $('wa-btn').addEventListener('click', () => whatsapp(buildInvite(), buildUrl()));
-  $('copy-btn').addEventListener('click', async () => {
-    await copyText(buildUrl());
-    toast('Link copiat 🔗');
-  });
+  $('copy-btn').addEventListener('click', (e) =>
+    withUrl(e.currentTarget, async url => {
+      await copyText(url);
+      toast('Link copiat 🔗');
+    }));
 
+  renderWho();
   renderPreview();
   renderTip();
 }
@@ -672,11 +896,14 @@ function initCompose() {
 let counterSyncs = [];
 
 function renderReplyPreview() {
-  $('reply-preview').textContent = buildReply();
+  if (replyEditor) replyEditor.paint();
+  else $('reply-preview').textContent = buildReply();
 }
 
 function openReply(answer) {
   reply.ra = answer;
+  reply.rx = '';                 // alt răspuns, alt text: pornim de la al nostru
+  if (replyEditor) replyEditor.close();
   reply.rp = reply.rp || state.p;
   reply.rd = reply.rd || (answer === 'late' ? isoOffset(2) : state.d);
   reply.rt = reply.rt || state.t;
@@ -705,6 +932,23 @@ function openReply(answer) {
   });
 }
 
+/* --- Butonul care se roagă de tine --- */
+
+let noTries = 0;
+let noLabel = '';
+
+const noButton = () => document.querySelector('#answer-buttons .btn-no');
+
+/**
+ * Îl aduce la starea de repaus. `pastBegging` îl lasă potolit după ce a cedat
+ * o dată: dacă te răzgândești și apeși iar „nu”, nu te mai bate la cap.
+ */
+function calmNoButton(pastBegging) {
+  noTries = pastBegging ? NO_PLEAS.length : 0;
+  noButton().textContent = noLabel;
+  $('answer-buttons').style.setProperty('--beg', '0');
+}
+
 let guestTipIndex = 0;
 
 function renderGuestTip() {
@@ -724,15 +968,33 @@ function renderCountdown() {
 }
 
 function initInvite() {
+  if (!noLabel) noLabel = noButton().textContent.trim();
+  calmNoButton(false);
+
   $('invite-text').textContent = buildInvite();
-
   renderCountdown();
-  setInterval(renderCountdown, 30000);
-
-  $('cal-btn').addEventListener('click', () => { buzz(); downloadIcs(); });
 
   guestTipIndex = Math.floor(Math.random() * 8);
   renderGuestTip();
+
+  // Ecranul se deschide de câte ori vrei, din link sau din listă. Legăm o
+  // singură dată, altfel s-ar aduna ascultători și câte un ceas nou de fiecare.
+  if (initInvite.wired) return;
+  initInvite.wired = true;
+
+  setInterval(renderCountdown, 30000);
+
+  replyEditor = wireEditor({
+    view: 'reply-preview', edit: 'reply-edit', label: 'reply-preview-label',
+    editBtn: 'reply-edit-btn', resetBtn: 'reply-reset-btn',
+    read: buildReply,
+    write: (v) => { reply.rx = v; },
+    isCustom: () => !!reply.rx.trim(),
+    onChange: () => {},
+  });
+
+  $('cal-btn').addEventListener('click', () => { buzz(); downloadIcs(); });
+
   $('guest-tip-card').addEventListener('click', () => {
     guestTipIndex++;
     renderGuestTip();
@@ -741,16 +1003,23 @@ function initInvite() {
 
   document.querySelectorAll('#answer-buttons .btn').forEach(btn => {
     btn.addEventListener('click', () => {
+      const no = btn.dataset.answer === 'no';
+
+      // Fiecare rugăminte umflă butonul verde și subțiază „nu”-ul.
+      if (no && noTries < NO_PLEAS.length) {
+        btn.textContent = NO_PLEAS[noTries++];
+        $('answer-buttons').style.setProperty('--beg', String(noTries));
+        buzz(12);
+        return;
+      }
+
       document.querySelectorAll('#answer-buttons .btn').forEach(b => b.classList.remove('btn-primary'));
       if (btn.dataset.answer !== 'yes') btn.classList.add('btn-primary');
+      if (no) calmNoButton(true);
       openReply(btn.dataset.answer);
     });
   });
 
-  $('recipientName').addEventListener('input', e => {
-    reply.rn = e.target.value;
-    renderReplyPreview();
-  });
   $('replyNote').addEventListener('input', e => {
     reply.rm = e.target.value;
     renderReplyPreview();
@@ -763,14 +1032,22 @@ function initInvite() {
     if (open) ta.focus();
   });
 
-  $('reply-send-btn').addEventListener('click', () => {
+  $('reply-send-btn').addEventListener('click', async (e) => {
     buzz();
-    shareOrCopy(buildReply(), buildUrl(reply), 'Răspunsul e copiat, dă-i paste 📤');
-  });
-  $('reply-wa-btn').addEventListener('click', () => whatsapp(buildReply(), buildUrl(reply)));
-  $('reply-copy-btn').addEventListener('click', async () => {
-    await copyText(`${buildReply()}\n\n${buildUrl(reply)}`);
-    toast('Răspuns copiat 📋');
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    try {
+      await Cloud.reply(currentInviteId, STATUS_OF[reply.ra] || 'da', buildReply());
+      $('answer-buttons').classList.add('hidden');
+      $('reply-panel').classList.add('hidden');
+      $('reply-actions').classList.add('hidden');
+      setInviteState('Răspuns trimis ✅ I-a ajuns pe loc.');
+      toast('Gata, i-am spus 📤');
+    } catch (err) {
+      toast(cloudErr(err));
+    } finally {
+      btn.disabled = false;
+    }
   });
 }
 
@@ -783,15 +1060,15 @@ function initAnswer() {
   $('answer-text').textContent = `${buildReply()}\n\nla invitația ta:\n${buildInvite()}`;
 
   // Dacă a zis da, are sens să pui întâlnirea în calendar.
-  if (reply.ra === 'yes' && eventDate()) {
-    const cal = $('answer-cal-btn');
-    cal.classList.remove('hidden');
-    cal.addEventListener('click', () => { buzz(); downloadIcs(); });
-  }
+  const cal = $('answer-cal-btn');
+  cal.classList.toggle('hidden', !(reply.ra === 'yes' && eventDate()));
 
-  $('new-btn').addEventListener('click', () => {
-    location.href = location.href.split('#')[0].split('?')[0];
-  });
+  // Ecranul se poate deschide de mai multe ori, din listă, așa că legăm o dată.
+  if (!initAnswer.wired) {
+    initAnswer.wired = true;
+    cal.addEventListener('click', () => { buzz(); downloadIcs(); });
+    $('new-btn').addEventListener('click', goCompose);
+  }
 
   if (reply.ra === 'yes') setTimeout(confetti, 320);
 }
@@ -878,7 +1155,7 @@ function makeStars() {
   const g = c.getContext('2d');
   g.scale(DPR, DPR);
 
-  // Ceață galactică — două pete moi, ca să nu fie cerul „plat”
+  // Ceață galactică: două pete moi, ca să nu fie cerul „plat”
   for (let i = 0; i < 2; i++) {
     const cx = W * (0.25 + 0.5 * i), cy = H * (0.2 + 0.45 * i), rad = Math.max(W, H) * 0.55;
     const grd = g.createRadialGradient(cx, cy, 0, cx, cy, rad);
@@ -1054,7 +1331,7 @@ function stopSky() {
 let resizeTimer = 0;
 addEventListener('resize', () => {
   if (document.documentElement.dataset.theme !== 'night') return;
-  // Pe telefon, bara de adresă care se ascunde declanșează resize — filtrăm zgomotul.
+  // Pe telefon, bara de adresă care se ascunde declanșează resize, așa că filtrăm zgomotul.
   if (Math.abs(innerWidth - W) < 2 && Math.abs(innerHeight - H) < 120) return;
   clearTimeout(resizeTimer);
   resizeTimer = setTimeout(() => {
@@ -1111,19 +1388,274 @@ function initTheme() {
 
 /* ------------------------------------------------------ 12. PORNIRE */
 
-function readUrl() {
-  const q = new URLSearchParams(location.search);
-  let hasInvite = false;
-  KEYS.forEach(k => {
-    const v = q.get(k);
-    if (v !== null) { state[k] = v; hasInvite = true; }
+/* ==================================== 9. CONT, CLOUD ȘI INVITAȚIILE MELE */
+
+/* Numele răspunsurilor: în interfață sunt yes/neg/late/no, în bază sunt
+   cuvinte întregi, fiindcă regulile de securitate le verifică pe nume. */
+const STATUS_OF = { yes: 'da', neg: 'negociem', late: 'alta-data', no: 'nu-pot' };
+const ANSWER_OF = { da: 'yes', negociem: 'neg', 'alta-data': 'late', 'nu-pot': 'no' };
+const STATUS_LABEL = {
+  trimisa: '⏳ așteaptă răspuns',
+  da: '🎉 a zis DA',
+  negociem: '😄 vrea să negocieze',
+  'alta-data': '🗓️ altă dată',
+  'nu-pot': '😅 nu poate acum',
+};
+
+let currentInviteId = '';
+let stopInboxWatch = null;
+let inboxTab = 'got';
+let inboxData = { sent: [], got: [] };
+
+function cloudErr(err) {
+  const msg = String((err && err.message) || err);
+  if (/permission|insufficient/i.test(msg)) return 'N-ai voie la asta 🙈';
+  if (/offline|network|unavailable|failed to get/i.test(msg)) return 'Fără internet acum 📡';
+  if (/popup|cancel/i.test(msg)) return 'Ai închis fereastra 🤷';
+  return 'N-a mers 😕';
+}
+
+const inviteUrl = id => `${location.href.split('#')[0].split('?')[0]}?i=${id}`;
+const readInviteId = () => new URLSearchParams(location.search).get('i') || '';
+
+/** Draftul se creează o singură dată și se rupe când schimbi ceva. */
+async function ensureInvite() {
+  if (!draftId) draftId = await Cloud.createInvite(state);
+  return inviteUrl(draftId);
+}
+
+function applyPayload(p) {
+  if (!p) return;
+  KEYS.forEach(k => { if (typeof p[k] === 'string') state[k] = p[k]; });
+}
+
+/** Un rând scurt pentru lista de invitații. */
+function shortLine(p) {
+  const at = p.t ? ` la ${p.t}` : '';
+  return `${opt('a', p.a).e} ${opt('a', p.a).l} · ${opt('p', p.p).l} · ${relDate(p.d)}${at}`;
+}
+
+function setInviteState(text) {
+  const el = $('invite-state');
+  el.textContent = text || '';
+  el.classList.toggle('hidden', !text);
+}
+
+/* ------------------------------------------------------------ cont */
+
+function initAuthView() {
+  $('google-btn').addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    try {
+      await Cloud.signIn();
+    } catch (err) {
+      toast(cloudErr(err));
+    } finally {
+      btn.disabled = false;
+    }
   });
-  let hasReply = false;
-  RKEYS.forEach(k => {
-    const v = q.get(k);
-    if (v !== null) { reply[k] = v; if (k === 'ra') hasReply = true; }
+
+  const broken = !Cloud.configured || !Cloud.available;
+  $('auth-card').classList.toggle('hidden', broken);
+  $('auth-setup').classList.toggle('hidden', !broken);
+  if (broken && Cloud.error && Cloud.error !== 'neconfigurat') {
+    $('auth-error').textContent = Cloud.error;
+  }
+}
+
+function paintAccount(user) {
+  $('account-btn').classList.toggle('hidden', !user);
+  $('account-menu').classList.add('hidden');
+  $('account-btn').setAttribute('aria-expanded', 'false');
+  if (!user) return;
+
+  const img = $('account-photo');
+  const initial = $('account-initial');
+  if (user.photo) {
+    img.src = user.photo;
+    img.classList.remove('hidden');
+    initial.textContent = '';
+  } else {
+    img.classList.add('hidden');
+    initial.textContent = (user.name[0] || '?').toUpperCase();
+  }
+  $('account-name').textContent = user.name;
+  $('account-mail').textContent = user.email;
+}
+
+function initAccountMenu() {
+  const btn = $('account-btn');
+  const menu = $('account-menu');
+
+  $('account-version').textContent = `versiunea ${self.APP_VERSION}`;
+
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const open = menu.classList.toggle('hidden');
+    btn.setAttribute('aria-expanded', String(!open));
   });
-  return { hasInvite, hasReply };
+  document.addEventListener('click', (e) => {
+    if (!menu.contains(e.target) && e.target !== btn) {
+      menu.classList.add('hidden');
+      btn.setAttribute('aria-expanded', 'false');
+    }
+  });
+
+  $('inbox-btn').addEventListener('click', () => {
+    menu.classList.add('hidden');
+    show('view-inbox');
+    renderInbox();
+  });
+
+  $('signout-btn').addEventListener('click', async () => {
+    menu.classList.add('hidden');
+    try { await Cloud.signOut(); } catch (_) { /* oricum ne întoarce onUser */ }
+  });
+}
+
+/* -------------------------------------------------- invitațiile mele */
+
+function initInbox() {
+  document.querySelectorAll('.seg-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      inboxTab = btn.dataset.tab;
+      document.querySelectorAll('.seg-btn').forEach(b =>
+        b.classList.toggle('is-on', b === btn));
+      renderInbox();
+    });
+  });
+
+  $('new-invite-btn').addEventListener('click', goCompose);
+}
+
+function startInbox() {
+  if (stopInboxWatch) stopInboxWatch();
+  stopInboxWatch = Cloud.watchMine(data => {
+    inboxData = data;
+    if (!$('view-inbox').classList.contains('hidden')) renderInbox();
+  });
+}
+
+function renderInbox() {
+  const list = $('inbox-list');
+  list.textContent = '';
+
+  const items = inboxTab === 'got' ? inboxData.got : inboxData.sent;
+  if (!items.length) {
+    const empty = document.createElement('p');
+    empty.className = 'inbox-empty';
+    empty.textContent = inboxTab === 'got'
+      ? 'Nimic primit încă. Când te invită cineva, apare aici.'
+      : 'N-ai trimis nicio invitație încă.';
+    list.append(empty);
+    return;
+  }
+
+  for (const d of items) {
+    const card = document.createElement('button');
+    card.className = 'inbox-item';
+    card.type = 'button';
+
+    const who = document.createElement('span');
+    who.className = 'inbox-who';
+    who.textContent = inboxTab === 'got'
+      ? `de la ${d.fromName}`
+      : (d.toName ? `către ${d.toName}` : 'încă nedeschisă');
+
+    const what = document.createElement('span');
+    what.className = 'inbox-what';
+    what.textContent = shortLine(d.payload || {});
+
+    const status = document.createElement('span');
+    status.className = `inbox-status st-${d.status}`;
+    status.textContent = STATUS_LABEL[d.status] || d.status;
+
+    card.append(who, what, status);
+    card.addEventListener('click', () => {
+      if (inboxTab === 'sent' && d.status !== 'trimisa') showAnswer(d);
+      else openInvite(d.id);
+    });
+    list.append(card);
+  }
+}
+
+/* ------------------------------------------------------------ rutare */
+
+/** Deschide o invitație după id: o revendică dacă e liberă, apoi o arată. */
+async function openInvite(id) {
+  let d;
+  try {
+    d = await Cloud.loadInvite(id);
+  } catch (err) {
+    toast(cloudErr(err));
+    return goCompose();
+  }
+  if (!d) {
+    toast('Invitația nu mai există 🤷');
+    return goCompose();
+  }
+
+  currentInviteId = id;
+  applyPayload(d.payload);
+  initInvite();
+
+  const mine = d.fromUid === Cloud.user.uid;
+  const forMe = d.toUid === Cloud.user.uid;
+  const free = !d.toUid;
+
+  // Cine poate răspunde: doar destinatarul, și doar dacă n-a răspuns deja.
+  const canAnswer = (free || forMe) && !mine && d.status === 'trimisa';
+
+  $('answer-buttons').classList.toggle('hidden', !canAnswer);
+  $('reply-panel').classList.add('hidden');
+  $('reply-actions').classList.add('hidden');
+
+  if (mine) {
+    setInviteState(d.status === 'trimisa'
+      ? 'E invitația ta. ' + STATUS_LABEL.trimisa
+      : `E invitația ta. ${STATUS_LABEL[d.status]}`);
+  } else if (d.status !== 'trimisa') {
+    setInviteState(`Ai răspuns deja: ${STATUS_LABEL[d.status]}`);
+  } else if (!free && !forMe) {
+    setInviteState('Invitația asta a fost deschisă de altcineva 🙈');
+  } else {
+    setInviteState('');
+    if (free) {
+      // Primul autentificat care deschide linkul devine destinatarul.
+      try { await Cloud.claimInvite(id); } catch (_) { /* a apucat altcineva */ }
+    }
+    reply.rn = myName;
+  }
+
+  show('view-invite');
+}
+
+/** Înapoi la compozitor: invitația citită nu are ce căuta în ce compui tu. */
+function goCompose() {
+  history.replaceState(null, '', location.pathname);
+  Object.assign(state, DEFAULTS, { d: isoOffset(1) });
+  recall();                    // ce compuneai tu ultima dată, dacă exista ceva
+  state.s = myName;
+  state.n = $('note').value;   // ce scrisesei tu, nu ce scria în invitația citită
+  remember();                  // rupe și draftul vechi: linkul trebuie să fie nou
+  if (inviteEditor) inviteEditor.close();
+  composeSyncs.forEach(fn => fn());
+  renderWho();
+  renderTip();
+  renderPreview();
+  show('view-compose');
+}
+
+function showAnswer(d) {
+  applyPayload(d.payload);
+  reply.ra = ANSWER_OF[d.status] || 'yes';
+  reply.rn = d.toName || '';
+  initAnswer();
+  // Textul răspunsului îl luăm așa cum l-a scris el, din bază.
+  const note = (d.reply && d.reply.note) || STATUS_LABEL[d.status];
+  $('answer-text').textContent = `${note}\n\nla invitația ta:\n${buildInvite()}`;
+  show('view-answer');
 }
 
 /* Instalare pe ecranul telefonului: butonul apare doar dacă se poate. */
@@ -1169,22 +1701,51 @@ function initServiceWorker() {
   }).catch(() => { /* fără cache offline, aplicația merge la fel */ });
 }
 
-(function main() {
+(async function main() {
   initTheme();
+  initServiceWorker();
+  initAccountMenu();
 
-  const { hasInvite, hasReply } = readUrl();
+  const cloudUp = await Cloud.ready;
+  initAuthView();
 
-  if (hasReply) {
-    initAnswer();
-    show('view-answer');
-  } else if (hasInvite) {
-    initInvite();
-    show('view-invite');
-  } else {
-    initCompose();
-    initInstall();
-    show('view-compose');
+  // Fără cloud nu există cont, deci nu există aplicație: rămânem pe ecranul
+  // care explică ce lipsește, în loc să lăsăm compozitorul care n-ar trimite.
+  if (!cloudUp) {
+    show('view-auth');
+    return;
   }
 
-  initServiceWorker();
+  // Compozitorul și lista se leagă o singură dată, indiferent câte
+  // conectări/deconectări urmează.
+  let wired = false;
+
+  Cloud.onUser(async (user) => {
+    paintAccount(user);
+
+    if (!user) {
+      if (stopInboxWatch) { stopInboxWatch(); stopInboxWatch = null; }
+      show('view-auth');
+      return;
+    }
+
+    // Numele din cont intră direct în invitație, de aia nu-l mai cerem.
+    myName = user.name.trim().slice(0, 24);
+    state.s = myName;
+    $('hello').textContent = `Bună, ${myName.split(' ')[0]}!`;
+
+    if (!wired) {
+      wired = true;
+      initCompose();
+      initInstall();
+      initInbox();
+    } else {
+      renderPreview();
+    }
+    startInbox();
+
+    const id = readInviteId();
+    if (id) await openInvite(id);
+    else show('view-compose');
+  });
 })();

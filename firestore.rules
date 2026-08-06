@@ -1,0 +1,137 @@
+rules_version = '2';
+
+/**
+ * Regulile de securitate Firestore.
+ *
+ * Cheile din `firebaseConfig` sunt publice, asta e normal și prin design.
+ * Fișierul ăsta e singurul lucru care stă între datele tale și oricine altcineva,
+ * așa că fiecare regulă de aici are un test în `tools/rules-test/rules.test.mjs`.
+ *
+ * Pe scurt:
+ *   - o invitație e imutabilă după trimitere; nici expeditorul n-o mai poate schimba;
+ *   - linkul e cheia: cine are id-ul poate deschide o invitație nerevendicată,
+ *     dar nimeni nu poate răsfoi invitațiile nerevendicate ale altora;
+ *   - doar destinatarul revendicat poate răspunde, o singură dată.
+ */
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function uid() {
+      return request.auth.uid;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    // Răspunsurile posibile. Orice altceva e refuzat.
+    function validStatus(s) {
+      return s in ['trimisa', 'da', 'negociem', 'alta-data', 'nu-pot'];
+    }
+
+    /* --------------------------------------------------------------- profil */
+
+    match /users/{userId} {
+      // Numele și poza se văd între utilizatori: apar pe invitații.
+      allow get: if signedIn();
+      // Nimeni nu răsfoiește lista de utilizatori.
+      allow list: if false;
+
+      allow create, update: if signedIn()
+        && uid() == userId
+        && incoming().keys().hasOnly(['name', 'email', 'photo', 'createdAt', 'lastSeenAt'])
+        && incoming().name is string
+        && incoming().name.size() <= 80;
+
+      allow delete: if false;
+    }
+
+    /* ------------------------------------------------------------ invitații */
+
+    match /invites/{inviteId} {
+
+      // `x` e invitația rescrisă de mână de expeditor. Citit cu `get` și un
+      // gol implicit, ca invitațiile de dinainte, care n-au cheia, să rămână
+      // valide: `p.x` ar da eroare pe o cheie lipsă.
+      function payloadOk(p) {
+        return p.keys().hasOnly(['s', 'g', 'a', 'p', 'd', 't', 'm', 'w', 'b', 'n', 'x'])
+          && p.s is string && p.s.size() <= 40
+          && p.n is string && p.n.size() <= 200
+          && p.get('x', '') is string && p.get('x', '').size() <= 600;
+      }
+
+      // Ce nu se schimbă niciodată după creare.
+      function frozen() {
+        return incoming().payload == resource.data.payload
+          && incoming().fromUid == resource.data.fromUid
+          && incoming().fromName == resource.data.fromName
+          && incoming().createdAt == resource.data.createdAt;
+      }
+
+      // Citire punctuală: expeditorul, destinatarul, sau oricine autentificat
+      // dacă invitația e încă nerevendicată: linkul ține loc de cheie.
+      allow get: if signedIn() && (
+        resource.data.fromUid == uid()
+        || resource.data.toUid == uid()
+        || resource.data.toUid == null
+      );
+
+      // Listare DOAR a invitațiilor proprii. Fără `toUid == null` aici, altfel
+      // oricine ar putea răsfoi toate invitațiile nerevendicate din bază.
+      // Două reguli separate, nu una cu SAU: la listare Firestore verifică
+      // interogarea, nu rezultatele, iar un predicat simplu se potrivește
+      // curat cu un `where` pe același câmp.
+      allow list: if signedIn() && resource.data.fromUid == uid();
+      allow list: if signedIn() && resource.data.toUid == uid();
+
+      allow create: if signedIn()
+        && incoming().keys().hasOnly([
+             'fromUid', 'fromName', 'toUid', 'toName',
+             'payload', 'status', 'reply', 'createdAt',
+           ])
+        && incoming().fromUid == uid()
+        && incoming().fromName is string
+        && incoming().fromName.size() <= 80
+        && incoming().toUid == null
+        && incoming().toName == null
+        && incoming().status == 'trimisa'
+        && incoming().reply == null
+        && incoming().createdAt == request.time
+        && payloadOk(incoming().payload);
+
+      // Revendicare: primul autentificat care deschide linkul devine destinatar.
+      // Expeditorul nu-și poate revendica propria invitație.
+      allow update: if signedIn()
+        && resource.data.toUid == null
+        && uid() != resource.data.fromUid
+        && frozen()
+        && incoming().toUid == uid()
+        && incoming().toName is string
+        && incoming().toName.size() <= 80
+        && incoming().status == resource.data.status
+        && incoming().reply == null;
+
+      // Răspuns: doar destinatarul revendicat, cu un status valid, iar
+      // răspunsul trebuie să spună același lucru ca statusul.
+      allow update: if signedIn()
+        && resource.data.toUid == uid()
+        && frozen()
+        && incoming().toUid == uid()
+        && incoming().toName == resource.data.toName
+        && validStatus(incoming().status)
+        && incoming().status != 'trimisa'
+        && incoming().reply.keys().hasOnly(['answer', 'note', 'at'])
+        && incoming().reply.answer == incoming().status
+        && incoming().reply.note is string
+        && incoming().reply.note.size() <= 400
+        && incoming().reply.at == request.time;
+
+      // Expeditorul își poate șterge invitația. Destinatarul, nu.
+      allow delete: if signedIn() && resource.data.fromUid == uid();
+    }
+  }
+}

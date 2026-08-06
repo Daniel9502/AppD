@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Hai să ne vedem — mobile-first, zero cereri externe (fonturi de sistem)
+   Hai să ne vedem: mobile-first, zero cereri externe (fonturi de sistem)
    ========================================================================== */
 
 :root {
@@ -104,6 +104,147 @@ body {
 }
 .theme-btn:active { transform: scale(.88) rotate(-20deg); }
 
+/* --- Contul: buton rotund lângă cel de temă, cu meniu dedesubt --- */
+.account-btn {
+  position: fixed;
+  top: calc(.7rem + env(safe-area-inset-top));
+  right: calc(.8rem + 52px);
+  z-index: 10;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+  border-radius: 50%;
+  border: 1px solid var(--card-border);
+  background: var(--card);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  cursor: pointer;
+  transition: transform .25s ease;
+}
+.account-btn:active { transform: scale(.88); }
+.account-btn img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.account-menu {
+  position: fixed;
+  top: calc(3.9rem + env(safe-area-inset-top));
+  right: .8rem;
+  z-index: 11;
+  width: min(16rem, calc(100vw - 1.6rem));
+  padding: .9rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--card-border);
+  background: var(--bg-2);
+  box-shadow: var(--shadow);
+}
+.account-name { margin: 0; font-weight: 700; font-size: .98rem; }
+.account-mail {
+  margin: .1rem 0 .8rem;
+  font-size: .82rem;
+  color: var(--text-soft);
+  overflow-wrap: anywhere;
+}
+.account-menu .btn { width: 100%; margin-top: .4rem; }
+/* Versiunea stă aici, nu pe ecran: o cauți când ai nevoie de ea, altfel
+   n-are ce să ocupe loc într-o aplicație care încape într-un tap. */
+.account-version {
+  margin: .8rem 0 0;
+  text-align: center;
+  font-size: .72rem;
+  letter-spacing: .04em;
+  color: var(--text-soft);
+  opacity: .7;
+}
+
+/* --- Ecranul de cont --- */
+.auth-card { text-align: center; }
+.auth-note {
+  margin: .9rem 0 0;
+  font-size: .84rem;
+  line-height: 1.5;
+  color: var(--text-soft);
+}
+.setup-card { text-align: left; }
+.setup-title { margin: 0 0 .5rem; font-weight: 700; }
+.setup-text { margin: 0 0 .6rem; font-size: .9rem; color: var(--text-soft); line-height: 1.55; }
+.setup-text code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .86em;
+  padding: .1rem .35rem;
+  border-radius: 6px;
+  background: var(--chip);
+}
+.setup-err {
+  margin: 0;
+  font-size: .8rem;
+  color: var(--text-soft);
+  overflow-wrap: anywhere;
+}
+
+/* --- Invitațiile mele --- */
+.seg {
+  display: flex;
+  gap: .35rem;
+  padding: .3rem;
+  margin: 0 0 1rem;
+  border-radius: 999px;
+  border: 1px solid var(--chip-border);
+  background: var(--chip);
+}
+.seg-btn {
+  flex: 1;
+  min-height: 38px;
+  font: inherit;
+  font-size: .92rem;
+  font-weight: 600;
+  color: var(--text-soft);
+  background: none;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.seg-btn.is-on { color: var(--accent-ink); background: var(--accent); }
+
+.inbox { display: flex; flex-direction: column; gap: .6rem; }
+.inbox-item {
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+  width: 100%;
+  padding: .85rem 1rem;
+  font: inherit;
+  text-align: left;
+  color: var(--text);
+  border-radius: var(--radius);
+  border: 1px solid var(--card-border);
+  background: var(--card);
+  cursor: pointer;
+  transition: transform .18s ease;
+}
+.inbox-item:active { transform: scale(.985); }
+.inbox-who { font-size: .78rem; color: var(--text-soft); }
+.inbox-what { font-size: .95rem; line-height: 1.4; }
+.inbox-status { font-size: .84rem; color: var(--text-soft); }
+.inbox-status.st-da { color: var(--yes); font-weight: 600; }
+.inbox-empty {
+  margin: 1.6rem 0;
+  text-align: center;
+  font-size: .92rem;
+  color: var(--text-soft);
+}
+
+.invite-state {
+  margin: 1rem 0 0;
+  text-align: center;
+  font-size: .92rem;
+  color: var(--text-soft);
+}
+
 /* --- Hero --- */
 .hero {
   text-align: center;
@@ -132,6 +273,38 @@ body {
   margin: 0;
   color: var(--text-soft);
   font-size: .98rem;
+}
+
+/* Cei trei pași de pe ecranul de intrare: numerotați, ca să se vadă că sunt trei. */
+.steps {
+  display: inline-block;
+  margin: .3rem 0 0;
+  padding: 0;
+  text-align: left;
+  list-style: none;
+  counter-reset: step;
+}
+.steps li {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  margin-bottom: .45rem;
+  color: var(--text-soft);
+  font-size: .98rem;
+}
+.steps li::before {
+  counter-increment: step;
+  content: counter(step);
+  flex: 0 0 auto;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: grid;
+  place-items: center;
+  font-size: .78rem;
+  font-weight: 800;
+  color: var(--accent-ink);
+  background: var(--accent);
+  border-radius: 50%;
 }
 
 /* --- Carduri --- */
@@ -182,7 +355,7 @@ textarea { resize: vertical; line-height: 1.5; }
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: .5rem;
-  margin-bottom: 1.3rem;
+  margin-bottom: .5rem;
 }
 
 .preset {
@@ -220,11 +393,9 @@ textarea { resize: vertical; line-height: 1.5; }
 }
 
 .cal-row { margin: -.3rem 0 1rem; }
-.actions-bar .btn-big + .btn-big { margin-top: .6rem; }
+.actions-bar .btn + .btn { margin-top: .6rem; }
 
-.name-row { display: flex; gap: .55rem; margin-bottom: 1.2rem; }
-.name-row input { flex: 1; min-width: 0; }
-.btn-surprise { flex: 0 0 auto; padding-inline: .85rem; }
+.btn-surprise { width: 100%; }
 
 /* --- Grupuri de chip-uri --- */
 .group { margin-bottom: 1.15rem; }
@@ -238,6 +409,13 @@ textarea { resize: vertical; line-height: 1.5; }
   letter-spacing: .06em;
   text-transform: uppercase;
   color: var(--text-soft);
+}
+
+/* Linia dintre „gata-făcute” și „alege tu”: două drumuri, nu doi pași. */
+.group-label-sep {
+  margin-top: 1.4rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--card-border);
 }
 
 .chips { display: flex; flex-wrap: wrap; gap: .45rem; }
@@ -291,44 +469,87 @@ textarea { resize: vertical; line-height: 1.5; }
 .note { margin-top: .55rem; }
 .extra-groups { margin-top: 1.1rem; }
 
-/* --- Pont (tip) --- */
+/* --- Pont (tip) ---
+   Cardul nu mai e un buton întreg: în cap stau butoanele mici de „ponturi
+   pentru”, iar textul rămâne zona pe care o atingi ca să treci la altul. */
 .tip {
-  display: block;
-  width: 100%;
   margin-bottom: 1rem;
-  padding: .95rem 1.1rem;
-  font-family: inherit;
-  font-size: 1rem;
-  text-align: left;
-  color: var(--text);
+  padding: .8rem 1.1rem .95rem;
   background: var(--card);
   border: 1.5px dashed var(--accent);
   border-radius: var(--radius);
-  cursor: pointer;
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  transition: transform .12s ease, background-color .2s;
 }
-.tip:active { transform: scale(.98); background: var(--accent-soft); }
+
+.tip-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: .5rem;
+  margin-bottom: .35rem;
+}
 
 .tip-label {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: .5rem;
-  margin-bottom: .3rem;
   font-size: .72rem;
   font-weight: 700;
   letter-spacing: .1em;
   text-transform: uppercase;
   color: var(--accent);
 }
+
+.tip-who { display: flex; gap: .25rem; }
+
+/* Rămân la 44px ca orice altă țintă de tap, chiar dacă pilula desenată e mai mică. */
+.who {
+  width: var(--tap);
+  height: var(--tap);
+  padding: 0;
+  font-family: inherit;
+  font-size: 1rem;
+  line-height: 1;
+  color: inherit;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  cursor: pointer;
+  opacity: .45;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity .2s, background-color .2s, border-color .2s, transform .12s ease;
+}
+.who[aria-pressed="true"] {
+  opacity: 1;
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+.who:active { transform: scale(.9); }
+
+.tip-body {
+  display: block;
+  width: 100%;
+  padding: 0;
+  font-family: inherit;
+  font-size: 1rem;
+  text-align: left;
+  color: var(--text);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity .2s;
+}
+.tip-body:active { opacity: .6; }
+
 .tip-more {
+  display: block;
+  margin-top: .35rem;
   font-size: .62rem;
   font-weight: 600;
   letter-spacing: .06em;
+  text-transform: uppercase;
   color: var(--text-soft);
   opacity: .8;
 }
@@ -362,6 +583,41 @@ textarea { resize: vertical; line-height: 1.5; }
   line-height: 1.65;
 }
 .preview.big { font-size: 1.12rem; line-height: 1.7; }
+
+/* Câmpul de rescriere: arată cât mai aproape de textul pe care îl înlocuiește,
+   ca să nu pară că ai sărit în alt ecran când apeși „Schimbă textul”. */
+.preview-edit {
+  margin: 0;
+  min-height: 8rem;
+  font-size: 1.02rem;
+  line-height: 1.65;
+  background: var(--card);
+  resize: none;
+  overflow: hidden;              /* creșterea o face autoGrow, nu bara de scroll */
+}
+
+.preview-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .2rem 1rem;
+  margin-top: .7rem;
+}
+
+.btn-link {
+  padding: .35rem 0;
+  min-height: 32px;
+  font: inherit;
+  font-size: .84rem;
+  font-weight: 700;
+  color: var(--text-soft);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-link:active { opacity: .55; }
+.btn-link-quiet { font-weight: 600; opacity: .75; }
 
 .invite-card {
   border-color: var(--accent);
@@ -408,6 +664,30 @@ textarea { resize: vertical; line-height: 1.5; }
 .btn-quiet { opacity: .65; font-weight: 600; }
 
 .actions-bar { margin-top: .3rem; }
+
+/* Bara de trimis: fixă pe marginea de jos, ca invitația să plece dintr-o
+   singură atingere, oricât ai fi derulat. Tot restul ecranului e opțional.
+   Stă înăuntrul lui #view-compose, deci dispare odată cu el pe alte ecrane. */
+.send-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 12;
+  padding: .9rem 1.1rem calc(.9rem + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, var(--bg) 60%, transparent);
+  pointer-events: none;          /* gradientul lasă atingerile să treacă */
+}
+.send-bar .btn {
+  display: block;
+  max-width: var(--max);
+  margin: 0 auto;
+  pointer-events: auto;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, .35);
+}
+
+/* Loc cât bara, ca ultimul buton să nu rămână ascuns sub ea. */
+#view-compose { padding-bottom: 6rem; }
 .actions-row { display: flex; gap: .6rem; margin-top: .6rem; }
 .actions-row .btn { flex: 1; }
 
@@ -419,6 +699,25 @@ textarea { resize: vertical; line-height: 1.5; }
 }
 .answer-grid .btn { min-height: 54px; font-size: .95rem; }
 .answer-grid .btn-quiet { grid-column: 1 / -1; min-height: 46px; }
+
+/* „Butonul verde e mai mare decât celelalte. Nu e o coincidență. 👀”
+   Gluma din texte, dusă până la capăt: `--beg` numără de câte ori s-a rugat butonul
+   de „nu”, iar cel verde crește cu fiecare rugăminte, în timp ce „nu”-ul se
+   subțiază. Se opresc amândouă după a treia; „nu” rămâne întotdeauna apăsabil. */
+.answer-grid { --beg: 0; }
+
+.answer-grid .btn-yes {
+  min-height: calc(62px + var(--beg) * 9px);
+  font-size: calc(1.15rem + var(--beg) * .09rem);
+  transition: transform .12s ease, filter .2s,
+              min-height .32s cubic-bezier(.2, .9, .3, 1.3), font-size .32s;
+}
+
+.answer-grid .btn-no {
+  opacity: calc(.65 - var(--beg) * .12);
+  font-size: calc(.95rem - var(--beg) * .03rem);
+  transition: transform .12s ease, opacity .32s, font-size .32s;
+}
 
 /* --- Toast --- */
 .toast {
@@ -440,6 +739,11 @@ textarea { resize: vertical; line-height: 1.5; }
   transition: transform .35s cubic-bezier(.2, .9, .3, 1.2), opacity .3s;
 }
 .toast.show { transform: translate(-50%, 0); opacity: 1; }
+
+/* Pe compozitor, mesajele urcă deasupra barei de trimis, ca să n-o acopere. */
+body:has(#view-compose:not(.hidden)) .toast {
+  bottom: calc(6rem + env(safe-area-inset-bottom));
+}
 
 /* --- Desktop --- */
 @media (min-width: 820px) {

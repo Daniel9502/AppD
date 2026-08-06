@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ro" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0d0d0d" />
+  <meta name="description" content="Explorator interactiv pentru graful de cunoștințe produs de Graphify. Caută, filtrează, urmărește drumuri între noduri." />
+  <title>Explorator de graf</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🕸️</text></svg>" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Graf" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true">🕸️</span>
+    <span class="brand-text">
+      <strong>Explorator de graf</strong>
+      <span id="source-name" class="brand-sub">se încarcă…</span>
+    </span>
+  </div>
+
+  <div class="search-wrap">
+    <input type="search" id="search" placeholder="Caută un nod…  (apasă /)"
+           autocomplete="off" spellcheck="false" aria-label="Caută un nod"
+           aria-expanded="false" aria-controls="search-results" role="combobox" />
+    <ul id="search-results" class="search-results" role="listbox" hidden></ul>
+  </div>
+
+  <div class="actions">
+    <button id="btn-side" class="icon-btn only-narrow" type="button" aria-label="Arată filtrele">☰</button>
+    <button id="btn-fit" class="icon-btn" type="button" title="Încadrează (F)" aria-label="Încadrează">⤢</button>
+    <button id="btn-relayout" class="icon-btn" type="button" title="Rearanjează (R)" aria-label="Rearanjează">↻</button>
+    <button id="btn-png" class="icon-btn" type="button" title="Salvează PNG" aria-label="Salvează ca PNG">⭳</button>
+    <button id="btn-theme" class="icon-btn" type="button" title="Zi / noapte (T)" aria-label="Schimbă tema">◐</button>
+    <label class="icon-btn file-btn" title="Deschide alt graph.json">
+      📂<input type="file" id="file-input" accept=".json,application/json" hidden />
+    </label>
+  </div>
+</header>
+
+<main class="layout">
+
+  <!-- ============ PANOU STÂNGA: filtre + statistici ============ -->
+  <aside class="panel panel-left" id="side" aria-label="Filtre și statistici">
+    <section class="block">
+      <h2>Graful</h2>
+      <p id="stats" class="stats">…</p>
+      <p id="commit" class="muted-line"></p>
+    </section>
+
+    <section class="block">
+      <h2>Comunități <button class="mini-btn" data-toggle-all="com" type="button">inversează</button></h2>
+      <ul id="communities" class="legend"></ul>
+      <p class="hint">Culorile sunt alocate primelor 8 comunități ca mărime; restul intră în <em>Altele</em>. Numele fiecărui grup e scris și pe hartă.</p>
+    </section>
+
+    <section class="block">
+      <h2>Relații <button class="mini-btn" data-toggle-all="rel" type="button">inversează</button></h2>
+      <ul id="relations" class="checklist"></ul>
+      <label class="check-row standalone">
+        <input type="checkbox" id="only-inferred" />
+        <span class="check-label">doar legături <em>deduse</em></span>
+      </label>
+    </section>
+
+    <section class="block">
+      <h2>Tip de nod</h2>
+      <ul id="kinds" class="checklist"></ul>
+    </section>
+
+    <section class="block">
+      <h2>Noduri-hub</h2>
+      <ol id="hubs" class="hubs"></ol>
+    </section>
+
+    <section class="block">
+      <h2>Scurtături</h2>
+      <ul class="keys">
+        <li><kbd>/</kbd> caută</li>
+        <li><kbd>F</kbd> încadrează</li>
+        <li><kbd>R</kbd> rearanjează</li>
+        <li><kbd>T</kbd> temă</li>
+        <li><kbd>Esc</kbd> renunță</li>
+      </ul>
+    </section>
+  </aside>
+
+  <!-- ============ SCENA ============ -->
+  <div class="stage" id="stage">
+    <canvas id="graph"></canvas>
+
+    <div class="hud">
+      <div class="pathbar" id="pathbar">
+        <span class="pathbar-title">Drum</span>
+        <button class="slot" id="slot-a" type="button" data-slot="a">A: ?</button>
+        <span class="arrow" aria-hidden="true">→</span>
+        <button class="slot" id="slot-b" type="button" data-slot="b">B: ?</button>
+        <span class="path-result" id="path-result"></span>
+        <button class="mini-btn" id="path-clear" type="button">șterge</button>
+      </div>
+    </div>
+
+    <div class="dropzone" id="dropzone" hidden>
+      <div class="dropzone-inner">
+        <span class="dz-icon" aria-hidden="true">🕸️</span>
+        <h2 id="dz-title">Lasă un <code>graph.json</code> aici</h2>
+        <p id="dz-msg">Fișierul e citit local, în browser. Nu pleacă nicăieri.</p>
+        <p class="dz-how">Îl generezi cu <code>graphify update .</code>, apare în <code>graphify-out/</code>.</p>
+        <label class="btn">Alege fișierul<input type="file" id="file-input-2" accept=".json,application/json" hidden /></label>
+      </div>
+    </div>
+
+    <p class="tip" id="tip" hidden></p>
+  </div>
+
+  <!-- ============ PANOU DREAPTA: detalii nod ============ -->
+  <aside class="panel panel-right" id="details" aria-label="Detalii nod" hidden>
+    <button class="close-btn" id="details-close" type="button" aria-label="Închide">×</button>
+    <div id="details-body"></div>
+  </aside>
+
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>

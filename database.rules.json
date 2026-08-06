@@ -1,0 +1,97 @@
+{
+  // ═══════════════════════════════════════════════════════════════════════
+  //  Realtime Database: reguli
+  //
+  //  Regula de aur: regulile CASCADEAZĂ ÎN JOS. Un `.read` sau `.write`
+  //  adevărat pus mai sus deschide tot subarborele, iar regulile mai adânci
+  //  nu mai sunt evaluate deloc. Nu poți restrânge mai jos ce ai deschis mai
+  //  sus. De aia nu există aici niciun `.read`/`.write` pe un nod-părinte
+  //  decât acolo unde chiar vrem acces la tot ce e dedesubt.
+  // ═══════════════════════════════════════════════════════════════════════
+  "rules": {
+
+    // ───────────────────────────────────────────────────────────── users ──
+    // Fiecare își citește doar propriul nod. Nimeni altcineva nu vede
+    // profile, purchase_history, token_history, inventory sau saved_recipes.
+    "users": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+
+        // Nu punem `.write` aici: ar deschide tot nodul. Scriem doar în
+        // subarborii de mai jos, exact ca înainte: ce nu e listat nu se
+        // scrie din client.
+        "profile":            { ".write": "auth != null && auth.uid === $uid" },
+        "history":            { ".write": "auth != null && auth.uid === $uid" },
+        "game_stats":         { ".write": "auth != null && auth.uid === $uid" },
+        "daily_rewards":      { ".write": "auth != null && auth.uid === $uid" },
+        "daily_missions":     { ".write": "auth != null && auth.uid === $uid" },
+        "weekly_stats":       { ".write": "auth != null && auth.uid === $uid" },
+        "inventory":          { ".write": "auth != null && auth.uid === $uid" },
+        "achievements_stats": { ".write": "auth != null && auth.uid === $uid" },
+        "streak_stats":       { ".write": "auth != null && auth.uid === $uid" },
+        "redeemed_codes":     { ".write": "auth != null && auth.uid === $uid" },
+        "referral_history":   { ".write": "auth != null && auth.uid === $uid" },
+        "scanned_hashes":     { ".write": "auth != null && auth.uid === $uid" },
+        "purchase_history":   { ".write": "auth != null && auth.uid === $uid" },
+        "token_history":      { ".write": "auth != null && auth.uid === $uid" },
+        "saved_recipes":      { ".write": "auth != null && auth.uid === $uid" },
+
+        // Singura excepție: cutia de referral-uri. Un străin logat poate LĂSA
+        // ceva nou înăuntru, dar nu poate citi ce e acolo, nu poate șterge și
+        // nu poate modifica ce a lăsat altcineva. Proprietarul face orice.
+        "referral_inbox": {
+          ".write": "auth != null && auth.uid === $uid",
+          "$item": {
+            ".write": "auth != null && !data.exists() && newData.exists()"
+          }
+        }
+      }
+    },
+
+    // ─────────────────────────────────────────────────────── leaderboard ──
+    // Clasamentul stă separat, ca să nu mai fie nevoie să deschidem tot
+    // `users` ca să-l putem interoga. Aici e public (între conturi) doar
+    // numele și scorul; nimic altceva nu intră, `$other` blochează restul.
+    "leaderboard": {
+      ".read": "auth != null",
+      ".indexOn": ["highScore"],
+      "$uid": {
+        ".write": "auth != null && auth.uid === $uid",
+        ".validate": "newData.hasChildren(['name', 'highScore'])",
+        "name":      { ".validate": "newData.isString() && newData.val().length <= 40" },
+        "highScore": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+        "$other":    { ".validate": false }
+      }
+    },
+
+    // ──────────────────────────────────────────────────── access_codes ──
+    // Lista întreagă nu se poate citi: nu poți afla ce coduri există.
+    // Un cod anume se poate citi dacă îl știi deja: linkul/codul e cheia.
+    "access_codes": {
+      ".read": false,
+      ".write": "auth != null && auth.uid === 'H5iYwRlGsJZ1KCjDY4mZuUHNS3Z2'",
+      "$code": {
+        ".read": true,
+
+        // Se poate atinge DOAR steagul `used`, și doar o dată, de la
+        // neconsumat la consumat. Restul nodului (recompensa) rămâne
+        // neatins; înainte putea fi șters odată cu marcarea.
+        "used": {
+          ".write": "auth != null && data.parent().exists() && data.val() !== true && newData.val() === true",
+          ".validate": "newData.isBoolean()"
+        }
+      }
+    },
+
+    // ────────────────────────────────────────────────── referral_codes ──
+    // La fel: harta întreagă nu se poate descărca, dar un cod primit de la
+    // cineva se poate verifica. Un cod se creează o dată și rămâne așa.
+    "referral_codes": {
+      ".read": false,
+      "$code": {
+        ".read": true,
+        ".write": "auth != null && !data.exists() && newData.exists()"
+      }
+    }
+  }
+}

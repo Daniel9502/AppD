@@ -22,26 +22,100 @@
     <span id="theme-icon">🌙</span>
   </button>
 
+  <button id="account-btn" class="account-btn hidden" type="button"
+          aria-label="Contul tău" aria-haspopup="menu" aria-expanded="false">
+    <img id="account-photo" alt="" referrerpolicy="no-referrer" />
+    <span id="account-initial"></span>
+  </button>
+
+  <div id="account-menu" class="account-menu hidden" role="menu">
+    <p class="account-name" id="account-name"></p>
+    <p class="account-mail" id="account-mail"></p>
+    <button id="inbox-btn" class="btn btn-ghost" type="button" role="menuitem">📬 Invitațiile mele</button>
+    <button id="signout-btn" class="btn btn-ghost btn-quiet" type="button" role="menuitem">Ieși din cont</button>
+    <p class="account-version" id="account-version"></p>
+  </div>
+
   <div class="page">
 
-    <!-- ============ VIEW 1: COMPOZITOR ============ -->
-    <section id="view-compose" class="view">
+    <!-- ============ VIEW 0: CONT ============ -->
+    <!-- Pornim pe ecranul de cont: fără el nu se poate face nimic, iar așa nu
+         mai apare o clipă compozitorul înainte să știm cine ești. -->
+    <section id="view-auth" class="view">
       <header class="hero">
-        <p class="eyebrow">✨ invitații în 5 tap-uri</p>
+        <p class="eyebrow">✨ invitații într-un minut</p>
         <h1>Hai să ne vedem</h1>
-        <p class="intro">Alegi, râzi, trimiți. Fără cont, fără instalare, fără scuze.</p>
+        <ol class="steps">
+          <li>Intri cu contul Google.</li>
+          <li>Alegi ce faceți și trimiți linkul.</li>
+          <li>Răspunsul îți apare aici, singur.</li>
+        </ol>
       </header>
 
-      <div class="card">
-        <span class="group-label">Cel mai rapid: alege un șablon</span>
-        <div class="presets" id="presets"></div>
+      <div class="card auth-card" id="auth-card">
+        <button id="google-btn" class="btn btn-primary btn-big" type="button">Continuă cu Google</button>
+        <p class="auth-note">
+          Ținem doar numele, adresa de mail și poza ta de profil, ca să știe celălalt cine îl cheamă.
+          Nimic altceva.
+        </p>
+      </div>
 
-        <div class="name-row">
-          <input type="text" id="senderName" placeholder="Numele tău" autocomplete="given-name"
-                 enterkeyhint="done" maxlength="24" aria-label="Numele tău" />
-          <button id="surprise-btn" class="btn btn-ghost btn-surprise" type="button">🎲 Surpriză</button>
+      <div class="card setup-card hidden" id="auth-setup">
+        <p class="setup-title">⚙️ Firebase nu e configurat încă</p>
+        <p class="setup-text">
+          Deschide <code>firebase-config.js</code>, are înăuntru toți pașii, pe scurt.
+          Până atunci nu se poate intra în cont.
+        </p>
+        <p class="setup-err" id="auth-error"></p>
+      </div>
+    </section>
+
+    <!-- ============ VIEW 4: INVITAȚIILE MELE ============ -->
+    <section id="view-inbox" class="view hidden">
+      <header class="hero hero-tight">
+        <p class="eyebrow">📬 invitațiile tale</p>
+      </header>
+
+      <div class="seg" role="tablist">
+        <button class="seg-btn is-on" type="button" role="tab" data-tab="got">Primite</button>
+        <button class="seg-btn" type="button" role="tab" data-tab="sent">Trimise</button>
+      </div>
+
+      <div id="inbox-list" class="inbox"></div>
+
+      <div class="actions-bar">
+        <button id="new-invite-btn" class="btn btn-primary btn-big" type="button">✍️ Fă o invitație</button>
+      </div>
+    </section>
+
+    <!-- ============ VIEW 1: COMPOZITOR ============ -->
+    <section id="view-compose" class="view hidden">
+      <header class="hero hero-tight">
+        <h1 id="hello">Hai să ne vedem</h1>
+        <p class="intro">Invitația e deja scrisă. O trimiți așa, sau schimbi ce vrei mai jos.</p>
+      </header>
+
+      <!-- Previzualizarea stă prima: cine vrea doar să apese „Trimite” vede
+           din prima ce trimite, fără să deruleze nimic. -->
+      <div class="card preview-card">
+        <p class="preview-label" id="preview-label">gata de trimis</p>
+        <p class="preview" id="preview"></p>
+        <textarea id="preview-edit" class="preview-edit hidden" rows="7" maxlength="600"
+                  aria-label="Textul invitației"></textarea>
+        <div class="preview-tools">
+          <button id="edit-btn" class="btn-link" type="button">✏️ Schimbă textul</button>
+          <button id="reset-btn" class="btn-link btn-link-quiet hidden" type="button">↺ textul automat</button>
         </div>
+      </div>
 
+      <div class="card">
+        <span class="group-label">Vrei altceva? Alege un șablon</span>
+        <div class="presets" id="presets"></div>
+        <button id="surprise-btn" class="btn btn-ghost btn-surprise" type="button">
+          🎲 Alege tu în locul meu
+        </button>
+
+        <span class="group-label group-label-sep">Sau alege tu, pas cu pas</span>
         <div id="chip-groups"></div>
 
         <button id="extra-toggle" class="note-toggle" type="button" aria-expanded="false">
@@ -56,25 +130,30 @@
                   placeholder="Scrie ceva scurt și dulce..." aria-label="Mesajul tău"></textarea>
       </div>
 
-      <button id="tip-card" class="tip" type="button">
-        <span class="tip-label">💡 pont pentru tine <span class="tip-more">atinge pentru altul</span></span>
-        <span class="tip-text" id="tip-text"></span>
-      </button>
-
-      <div class="card preview-card">
-        <p class="preview-label">așa arată invitația</p>
-        <p class="preview" id="preview"></p>
-      </div>
+      <!-- Pontul: cine ești schimbă doar ponturile, nu invitația, de aia
+           butoanele stau lipite de el, nu într-o întrebare separată în formular. -->
+      <section class="tip">
+        <div class="tip-head">
+          <span class="tip-label">💡 pont pentru tine</span>
+          <div class="tip-who" id="tip-who" role="group" aria-label="Ponturi pentru"></div>
+        </div>
+        <button id="tip-card" class="tip-body" type="button">
+          <span class="tip-text" id="tip-text"></span>
+          <span class="tip-more">atinge pentru alt pont</span>
+        </button>
+      </section>
 
       <div class="actions-bar">
-        <button id="send-btn" class="btn btn-primary btn-big" type="button">💌 Trimite invitația</button>
-        <div class="actions-row">
-          <button id="wa-btn" class="btn btn-ghost" type="button">WhatsApp</button>
-          <button id="copy-btn" class="btn btn-ghost" type="button">Copiază linkul</button>
-        </div>
+        <button id="copy-btn" class="btn btn-ghost btn-quiet" type="button">sau copiază doar linkul</button>
         <button id="install-btn" class="btn btn-ghost btn-big hidden" type="button">
           📲 Pune-o pe ecranul telefonului
         </button>
+      </div>
+
+      <!-- Butonul de trimis nu se lasă derulat: stă lipit de marginea de jos,
+           vizibil din secunda în care se deschide ecranul. -->
+      <div class="send-bar">
+        <button id="send-btn" class="btn btn-primary btn-big" type="button">💌 Trimite invitația</button>
       </div>
     </section>
 
@@ -93,21 +172,24 @@
         <button id="cal-btn" class="btn btn-ghost" type="button">📅 Salvează în calendar</button>
       </div>
 
-      <button id="guest-tip-card" class="tip" type="button">
-        <span class="tip-label">💡 pont pentru tine <span class="tip-more">atinge pentru altul</span></span>
-        <span class="tip-text" id="guest-tip-text"></span>
-      </button>
+      <section class="tip">
+        <div class="tip-head">
+          <span class="tip-label">💡 pont pentru tine</span>
+        </div>
+        <button id="guest-tip-card" class="tip-body" type="button">
+          <span class="tip-text" id="guest-tip-text"></span>
+          <span class="tip-more">atinge pentru alt pont</span>
+        </button>
+      </section>
 
       <div id="answer-buttons" class="answer-grid">
         <button class="btn btn-yes" type="button" data-answer="yes">🎉 DA!</button>
         <button class="btn btn-ghost" type="button" data-answer="neg">😄 Hai să negociem</button>
         <button class="btn btn-ghost" type="button" data-answer="late">🗓️ Da, dar altă dată</button>
-        <button class="btn btn-ghost btn-quiet" type="button" data-answer="no">😅 Nu pot acum</button>
+        <button class="btn btn-ghost btn-quiet btn-no" type="button" data-answer="no">😅 Nu pot acum</button>
       </div>
 
       <div id="reply-panel" class="card hidden">
-        <input type="text" id="recipientName" placeholder="Numele tău" maxlength="24"
-               enterkeyhint="done" autocomplete="given-name" aria-label="Numele tău" />
         <div id="counter-groups"></div>
         <button id="reply-note-toggle" class="note-toggle" type="button" aria-expanded="false">
           ➕ Adaugă un mesaj
@@ -115,17 +197,22 @@
         <textarea id="replyNote" class="note hidden" rows="2" maxlength="180"
                   placeholder="Scrie ceva..." aria-label="Mesajul tău"></textarea>
 
-        <p class="preview-label">răspunsul tău</p>
+        <p class="preview-label" id="reply-preview-label">răspunsul tău</p>
         <p class="preview" id="reply-preview"></p>
+        <textarea id="reply-edit" class="preview-edit hidden" rows="5" maxlength="400"
+                  aria-label="Textul răspunsului"></textarea>
+        <div class="preview-tools">
+          <button id="reply-edit-btn" class="btn-link" type="button">✏️ Schimbă textul</button>
+          <button id="reply-reset-btn" class="btn-link btn-link-quiet hidden" type="button">↺ textul automat</button>
+        </div>
       </div>
 
       <div id="reply-actions" class="actions-bar hidden">
         <button id="reply-send-btn" class="btn btn-primary btn-big" type="button">📤 Trimite răspunsul</button>
-        <div class="actions-row">
-          <button id="reply-wa-btn" class="btn btn-ghost" type="button">WhatsApp</button>
-          <button id="reply-copy-btn" class="btn btn-ghost" type="button">Copiază</button>
-        </div>
+        <p class="auth-note">Îi ajunge pe loc, în aplicație.</p>
       </div>
+
+      <p id="invite-state" class="invite-state hidden"></p>
     </section>
 
     <!-- ============ VIEW 3: RĂSPUNSUL PRIMIT ============ -->
@@ -149,6 +236,9 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
+  <script src="version.js"></script>
+  <script src="firebase-config.js"></script>
+  <script type="module" src="cloud.js"></script>
   <script src="script.js" defer></script>
 </body>
 </html>

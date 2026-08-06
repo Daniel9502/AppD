@@ -2,22 +2,32 @@
  * Service worker: aplicația pornește din cache (instant, chiar și fără net)
  * și se împrospătează în fundal.
  *
- * Când vrei ca toată lumea să primească imediat versiunea nouă,
- * crește numărul din VERSION de mai jos.
+ * Numărul de versiune vine din `version.js`, ca să fie unul singur pentru
+ * toată aplicația. Când îl crești acolo, browserul observă că un script
+ * importat s-a schimbat, reinstalează service workerul și cache-ul vechi
+ * dispare de la sine.
  */
 
-const VERSION = 3;
-const CACHE = `hai-sa-ne-vedem-v${VERSION}`;
+importScripts('./version.js');
+
+const CACHE = `hai-sa-ne-vedem-v${self.APP_VERSION}`;
 
 const ASSETS = [
   './',
   './index.html',
   './styles.css',
+  './version.js',
   './script.js',
+  './firebase-config.js',
+  './cloud.js',
   './manifest.webmanifest',
   './icon-192.png',
   './icon-512.png',
 ];
+
+/* SDK-ul Firebase și apelurile către Firestore sunt pe alt domeniu, deci trec
+   pe lângă noi; vezi verificarea de origine din handlerul de fetch. Aplicația
+   pornește offline, dar invitațiile au nevoie de internet. */
 
 self.addEventListener('install', event => {
   event.waitUntil(
@@ -42,8 +52,12 @@ self.addEventListener('fetch', event => {
   const url = new URL(req.url);
   if (url.origin !== location.origin) return;
 
-  // Invitațiile sunt tot index.html, doar cu alt query string.
-  const key = req.mode === 'navigate' ? './index.html' : req.url;
+  // Invitațiile sunt tot index.html, doar cu alt query string, dar numai la
+  // rădăcină. Subpaginile (ex. /graph/) își păstrează propriul URL, altfel ar
+  // primi index.html-ul aplicației de invitații.
+  const root = new URL('./', self.registration.scope).pathname;
+  const isRoot = url.pathname === root || url.pathname === root + 'index.html';
+  const key = req.mode === 'navigate' && isRoot ? './index.html' : req.url;
 
   event.respondWith(
     caches.open(CACHE).then(async cache => {
